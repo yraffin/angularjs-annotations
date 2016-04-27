@@ -139,6 +139,14 @@ declare module "angularjs-annotations/core/decorators" {
     export function Filter(): (target: Class) => void;
     export function Inject(name?: string): (target: Object, targetKey: string) => void;
 }
+declare module "angularjs-annotations/core" {
+    export * from "angularjs-annotations/core/decorators";
+    export * from "angularjs-annotations/core/types";
+    interface OnInit {
+        ngOnInit(): void;
+    }
+    export { OnInit };
+}
 declare module "angularjs-annotations/router/metadata/route.config.metadata" {
     import { Class } from "angularjs-annotations/core/types";
     export interface IRouteDefinition {
@@ -154,7 +162,7 @@ declare module "angularjs-annotations/router/metadata/route.config.metadata" {
         constructor(data: Array<IRouteDefinition>);
     }
 }
-declare module "angularjs-annotations/core/module" {
+declare module "angularjs-annotations/platform/browser" {
     import { Class } from "angularjs-annotations/core/types";
     export interface IModule {
         name: string;
@@ -314,14 +322,6 @@ declare module "angularjs-annotations/core/module" {
      * @param {{string|IModule}[]} modules - Module dependencies.
      */
     export function bootstrap(component: Class, modules?: Array<string | IModule>): void;
-}
-declare module "angularjs-annotations/core" {
-    export * from "angularjs-annotations/core/decorators";
-    export * from "angularjs-annotations/core/types";
-    interface OnInit {
-        ngOnInit(): void;
-    }
-    export { OnInit };
 }
 declare module "angularjs-annotations/router/decorators" {
     import { IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";

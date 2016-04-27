@@ -256,6 +256,13 @@ define("angularjs-annotations/core/decorators", ["require", "exports", "angularj
     }
     exports.Inject = Inject;
 });
+define("angularjs-annotations/core", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_1) {
+    "use strict";
+    function __export(m) {
+        for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+    }
+    __export(decorators_1);
+});
 define("angularjs-annotations/router/metadata/route.config.metadata", ["require", "exports"], function (require, exports) {
     "use strict";
     var RouteConfigMetadata = (function () {
@@ -270,7 +277,7 @@ define("angularjs-annotations/router/metadata/route.config.metadata", ["require"
     }());
     exports.RouteConfigMetadata = RouteConfigMetadata;
 });
-define("angularjs-annotations/core/module", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_2, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_2, route_config_metadata_1, providers_metadata_2) {
+define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_2, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_2, route_config_metadata_1, providers_metadata_2) {
     "use strict";
     /**
      * Modules dictionary by name
@@ -722,13 +729,6 @@ define("angularjs-annotations/core/module", ["require", "exports", "angularjs-an
         $(element).addClass("ng-app: " + name);
     }
     exports.bootstrap = bootstrap;
-});
-define("angularjs-annotations/core", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_1) {
-    "use strict";
-    function __export(m) {
-        for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-    }
-    __export(decorators_1);
 });
 define("angularjs-annotations/router/decorators", ["require", "exports", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, route_config_metadata_2, decorators_utils_3) {
     "use strict";
