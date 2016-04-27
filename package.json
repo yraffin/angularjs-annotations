@@ -1,0 +1,33 @@
+{
+  "name": "angularjs-annotations",
+  "version": "1.0.0",
+  "description": "Develop AngularJS 1.x application the same way as an Angular 2 application, using the power of TypeScript 1.7 decorators",
+  "main": "Gruntfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yraffin/angularjs-annotations.git"
+  },
+  "keywords": [
+    "AngularJS",
+    "Typescript",
+    "Decorators",
+    "Angular2",
+    "AMD"
+  ],
+  "author": "Yannick RAFFIN <ian.raffin@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yraffin/angularjs-annotations/issues"
+  },
+  "homepage": "https://github.com/yraffin/angularjs-annotations",
+  "devDependencies": {
+    "glob": "^7.0.3",
+    "grunt": "^1.0.1",
+    "grunt-ts": "^5.5.0-beta.2",
+    "matchdep": "^1.0.1",
+    "require": "^2.4.20"
+  }
+}

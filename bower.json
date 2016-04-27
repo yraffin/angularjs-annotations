@@ -1,0 +1,34 @@
+{
+  "name": "angularjs-annotations",
+  "homepage": "https://github.com/yraffin/angularjs-annotations",
+  "authors": [
+    "Yannick RAFFIN <ian.raffin@gmail.com>"
+  ],
+  "description": "Develop AngularJS 1.x application the same way as an Angular 2 application, using the power of TypeScript 1.7 decorators",
+  "main": "./dist/angularjs-annotations.js",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "AngularJS",
+    "Typescript",
+    "Decorators",
+    "Angular2",
+    "AMD"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "^1.5.5",
+    "requirejs": "^2.2.0",
+    "underscore": "^1.8.3",
+    "reflect-metadata": "^0.1.3",
+    "angular-ui-router": "^0.2.18"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "target": "es5",
+    "module": "amd",
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "declaration": true,
+    "removeComments": false,
+    "sourceMap": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "outFile": "dist/angularjs-annotations.js",
+    "rootDir": "src/"    
+  },
+  "exclude": [
+    "node_modules",
+	  "bower_components",
+    "typings"
+  ]
+}

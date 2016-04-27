@@ -1,0 +1,1 @@
+export * from "angularjs-annotations/router/decorators"
