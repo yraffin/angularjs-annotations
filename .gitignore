@@ -3,6 +3,9 @@
 .tscache
 src/**/*.js
 src/**/*.map
+demo/**/*.js
+demo/**/*.map
+demo/vendors
 node_modules
 bower_components
 typings

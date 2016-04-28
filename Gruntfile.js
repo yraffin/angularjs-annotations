@@ -8,6 +8,7 @@ module.exports = function (grunt) {
         srcFolder: "src",
         distFolder: "dist",
         tempFolder: ".tmp",
+        demoFolder: "demo",
         // allows us to reference properties we declared in package.json.
         pkg: grunt.file.readJSON("package.json")
     };
@@ -28,4 +29,7 @@ module.exports = function (grunt) {
 
     // typescript tasks
     grunt.registerTask("default", ["ts:dist"]);
+    
+    // launch demo
+    grunt.registerTask("demo", ["ts", "bowercopy", "connect:demo", "watch"]);
 };
