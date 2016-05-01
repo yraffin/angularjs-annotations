@@ -3,39 +3,39 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+define("angularjs-annotations/core/types", ["require", "exports"], function (require, exports) {
+    "use strict";
+});
 define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "exports"], function (require, exports) {
     "use strict";
     var InjectableMetadata = (function () {
         function InjectableMetadata() {
         }
-        /**
-         * Get current class injection name.
-         * @method
-         * @return {string}
-         */
-        InjectableMetadata.prototype.getInjectionName = function () {
+        InjectableMetadata.prototype.getInjectionName = function (provider) {
+            if (this["name"]) {
+                return this["name"];
+            }
             if (this["selector"]) {
                 return this.getSelectorInjectionName();
             }
-            return this.getClassName();
+            return this.getClassName(provider);
         };
-        /**
-         * Get current class name.
-         * @method
-         * @return {string}
-         */
-        InjectableMetadata.prototype.getClassName = function () {
-            var self = this.constructor;
+        InjectableMetadata.prototype.getClassName = function (provider) {
+            var self = provider ? provider : this.constructor;
             if (self.name) {
                 return self.name;
             }
             return self.toString().match(/^function\s*([^\s(]+)/)[1];
         };
-        /**
-         * Get directive restrict property.
-         * @method
-         * @return {string} E, C ou A (Element, class or attribute)
-         */
         InjectableMetadata.prototype.getSelectorInjectionName = function () {
             var selector = this["selector"].trim();
             if (selector.match(/\[[a-zA-Z0-9\-_]+\]/ig)) {
@@ -47,12 +47,6 @@ define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "e
             }
             return this.deNormalize(selector);
         };
-        /**
-         * Normalize string for angular html code.
-         * @method
-         * @param {string} s - string to normalize.
-         * @return {string}
-         */
         InjectableMetadata.prototype.normalize = function (s) {
             var normalized = _.isString(s)
                 ? s.replace(/[A-Z]/g, function (ch) { return "-" + String.fromCharCode(ch.charCodeAt(0) | 32); })
@@ -60,12 +54,6 @@ define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "e
             normalized = normalized.replace(/^-+/g, "");
             return normalized;
         };
-        /**
-         * Normalize string from angular html code.
-         * @method
-         * @param {string} s - string to normalize.
-         * @return {string}
-         */
         InjectableMetadata.prototype.deNormalize = function (s) {
             var normalized = _.isString(s)
                 ? s.replace(/\-[a-z]/g, function (ch) { return ch.substr(1, 1).toUpperCase(); })
@@ -76,9 +64,6 @@ define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "e
         return InjectableMetadata;
     }());
     exports.InjectableMetadata = InjectableMetadata;
-});
-define("angularjs-annotations/core/types", ["require", "exports"], function (require, exports) {
-    "use strict";
 });
 define("angularjs-annotations/core/metadata/directive.metadata", ["require", "exports", "angularjs-annotations/core/metadata/injectable.metadata"], function (require, exports, injectable_metadata_1) {
     "use strict";
@@ -94,12 +79,16 @@ define("angularjs-annotations/core/metadata/directive.metadata", ["require", "ex
             this.providers = data.providers;
             this.properties = data.properties;
         }
-        /**
-         * Gets an array of linked Class to register with directive.
-         * @return {Class[]}
-         */
         DirectiveMetadata.prototype.getLinkedClasses = function () {
-            return _.filter(this.providers || [], function (provider) { return _.isFunction(provider); });
+            return this.getLinkedClassesFromSource(this.providers);
+        };
+        DirectiveMetadata.prototype.getLinkedClassesFromSource = function (source) {
+            var _this = this;
+            var result = _.filter(source || [], function (provider) { return _.isFunction(provider); }) || [];
+            _.filter(source || [], function (provider) { return _.isArray(provider); }).forEach(function (providerList) {
+                result = _.union(result, _this.getLinkedClassesFromSource(providerList));
+            });
+            return result;
         };
         return DirectiveMetadata;
     }(injectable_metadata_1.InjectableMetadata));
@@ -115,14 +104,11 @@ define("angularjs-annotations/core/metadata/component.metadata", ["require", "ex
                 throw new TypeError("Component selector should be alphanumeric");
             }
             this.directives = data.directives;
+            this.styleUrls = data.styleUrls;
         }
-        /**
-         * Gets an array of linked Class to register with component.
-         * @return {Class[]}
-         */
         ComponentMetadata.prototype.getLinkedClasses = function () {
             var providers = _super.prototype.getLinkedClasses.call(this);
-            var directives = _.filter(this.directives || [], function (directive) { return _.isFunction(directive); });
+            var directives = this.getLinkedClassesFromSource(this.directives);
             return _.union(providers, directives);
         };
         return ComponentMetadata;
@@ -180,7 +166,6 @@ define("angularjs-annotations/core/decorators.utils", ["require", "exports"], fu
     function defineMetadata(value) {
         function decorator(target, targetKey) {
             if (!_.isUndefined(targetKey)) {
-                // property metadata
                 if (!_.isObject(target)) {
                     throw new TypeError();
                 }
@@ -190,7 +175,6 @@ define("angularjs-annotations/core/decorators.utils", ["require", "exports"], fu
                 Reflect.defineMetadata(exports.METADATA_KEY, metadata, target, targetKey);
             }
             else {
-                // class metadata
                 if (!_.isFunction(target)) {
                     throw new TypeError();
                 }
@@ -268,30 +252,47 @@ define("angularjs-annotations/router/metadata/route.config.metadata", ["require"
     var RouteConfigMetadata = (function () {
         function RouteConfigMetadata(data) {
             this.data = data;
-            // if loader defined => lazy loading
             _.filter(data, function (item) { return !!item.loader; }).forEach(function (item) { return item.lazyLoad = true; });
-            // if component defined => no lazy loading
             _.filter(data, function (item) { return !!item.component; }).forEach(function (item) { return item.lazyLoad = false; });
         }
         return RouteConfigMetadata;
     }());
     exports.RouteConfigMetadata = RouteConfigMetadata;
 });
+define("angularjs-annotations/router/providers/router", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_2) {
+    "use strict";
+    var Router = (function () {
+        function Router() {
+        }
+        Object.defineProperty(Router.prototype, "routes", {
+            get: function () {
+                return this._state.get();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Router.prototype.navigate = function (stateName, params, options) {
+            this._state.go(stateName, params, options);
+        };
+        __decorate([
+            decorators_2.Inject("$state"), 
+            __metadata('design:type', Object)
+        ], Router.prototype, "_state", void 0);
+        Router = __decorate([
+            decorators_2.Service(), 
+            __metadata('design:paramtypes', [])
+        ], Router);
+        return Router;
+    }());
+    exports.Router = Router;
+});
 define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_2, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_2, route_config_metadata_1, providers_metadata_2) {
     "use strict";
-    /**
-     * Modules dictionary by name
-     */
     var __Modules = {};
     exports.UI_ROUTER = "ui.router";
-    /**
-     * Application module class
-     * @class
-     */
     var ApplicationModule = (function () {
         function ApplicationModule(name, modules) {
             this.name = name;
-            // module routes
             this._routes = [];
             this._registeredClass = [];
             var dependencies = [];
@@ -302,15 +303,11 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                 this.configureRouting();
             }
             else {
-                var deps = _.difference(dependencies, module.requires || []); //module.requires.push(mockModuleName);
+                var deps = _.difference(dependencies, module.requires || []);
                 module.requires = _.union(module.requires, deps);
             }
         }
         Object.defineProperty(ApplicationModule.prototype, "_module", {
-            /**
-             * Gets or sets the current module by its name.
-             * @property {angular.IModule}
-             */
             get: function () {
                 return __Modules[this.name];
             },
@@ -320,12 +317,6 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             enumerable: true,
             configurable: true
         });
-        //#region ----- IModule implementations -----
-        /**
-         * Add a list of providers to a module.
-         * @method
-         * @param {Type[]} providers
-         */
         ApplicationModule.prototype.add = function () {
             var _this = this;
             var providers = [];
@@ -333,7 +324,6 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                 providers[_i - 0] = arguments[_i];
             }
             _.each(providers, function (provider) {
-                // if provider is directive
                 if (_this.isDirective(provider)) {
                     _this.registerDirective(provider);
                     return;
@@ -358,29 +348,12 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             this._module.run(initialization);
             return this;
         };
-        //#endregion
-        //#region ----- Module registration Methods ----
-        /**
-         * Set a provider as registered class in module.
-         * @method
-         * @param {string} name - the registration name.
-         */
         ApplicationModule.prototype.setAsRegistered = function (name) {
             this._registeredClass.push(name);
         };
-        /**
-         * Gets a value indicating whether a provider is registered in module.
-         * @method
-         * @param {string} name - the registration name.
-         */
         ApplicationModule.prototype.isRegistered = function (name) {
             return this._registeredClass.indexOf(name) > -1;
         };
-        /**
-         * Register an angular route.
-         * @method
-         * @param {Class} provider - The provider component.
-         */
         ApplicationModule.prototype.registerRoutes = function (provider) {
             var _this = this;
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
@@ -394,15 +367,9 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             if (_.any(routeMetadata.data, function (route) { return _.any(_this._routes, function (r) { return r.name === route.name; }); })) {
                 throw new Error("Route definition name should be unique");
             }
-            // register route components
             _.filter(routeMetadata.data, function (routeDef) { return !!routeDef.component && _.isFunction(routeDef.component); }).forEach(function (routeDef) { return _this.add(routeDef.component); });
             this._routes = _.union(this._routes, routeMetadata.data);
         };
-        /**
-         * Register an angular directive.
-         * @method
-         * @param {Class} provider - The provider to register in angular module.
-         */
         ApplicationModule.prototype.registerDirective = function (provider) {
             var _this = this;
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
@@ -410,9 +377,8 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             if (!directiveMetadata) {
                 return;
             }
-            var name = directiveMetadata.getInjectionName();
+            var name = directiveMetadata.getInjectionName(provider);
             if (this.isRegistered(name)) {
-                // TODO: check if registration is same type or else throw error
                 return;
             }
             if (!directiveMetadata.selector) {
@@ -424,7 +390,6 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             var directive = {};
             directive.restrict = this.getDirectiveRestriction(directiveMetadata.selector.trim());
             directive.controllerAs = directiveMetadata.exportAs || name;
-            // add template
             if (directiveMetadata.template) {
                 directive.template = directiveMetadata.template;
             }
@@ -434,32 +399,41 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             else {
                 throw new Error("Directive template should be define");
             }
-            // set link function
             if (provider["link"]) {
                 directive.link = provider["link"];
             }
-            // set compile function
+            directive.link = this.getDirectiveLinkFunction(provider, directiveMetadata);
             if (provider["compile"]) {
-                directive.link = provider["compile"];
+                directive.compile = provider["compile"];
             }
-            // add controller as function or inlineAnnotatedFunction
             directive.controller = this.getInlineAnnotatedFunction(provider);
-            // set module directive
             this._module.directive(name, function () { return directive; });
             this.setAsRegistered(name);
-            // register linked directives and providers
             var linkedClasses = directiveMetadata.getLinkedClasses();
             if (_.isEmpty(linkedClasses)) {
                 return;
             }
             _.each(linkedClasses, function (linkedClass) { return _this.add(linkedClass); });
         };
-        /**
-         * Get directive restrict property.
-         * @method
-         * @param {string} selector - The metadata selector value.
-         * @return {string} E, C ou A (Element, class or attribute)
-         */
+        ApplicationModule.prototype.getDirectiveLinkFunction = function (provider, metadata) {
+            var controllerName = metadata.exportAs || metadata.getInjectionName(provider);
+            return function (scope, element, attributes, controllers) {
+                if (provider["link"] && _.isFunction(provider["link"])) {
+                    provider["link"](scope, element, attributes, controllers);
+                }
+                var to;
+                var listener = scope.$watch(function () {
+                    clearTimeout(to);
+                    to = setTimeout(function () {
+                        listener();
+                        if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit)) {
+                            scope[controllerName].ngOnInit();
+                        }
+                        scope.$broadcast("angularjsannotations.initialized");
+                    }, 50);
+                });
+            };
+        };
         ApplicationModule.prototype.getDirectiveRestriction = function (selector) {
             if (selector.match(/\[[a-zA-Z0-9\-_]+\]/ig)) {
                 return "A";
@@ -469,56 +443,34 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             }
             return "E";
         };
-        /**
-         * Register an angular service.
-         * @method
-         * @param {Class} provider - The provider to register in angular module.
-         */
         ApplicationModule.prototype.registerService = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             var serviceMetadata = _.find(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ServiceMetadata; });
             if (!serviceMetadata) {
                 return;
             }
-            var name = serviceMetadata.getInjectionName();
+            var name = serviceMetadata.getInjectionName(provider);
             if (this.isRegistered(name)) {
-                // TODO: check if registration is same type or else throw error
                 return;
             }
-            // add inline annotated function to directive provider
             var annotatedFunction = this.getInlineAnnotatedFunction(provider);
-            // set module directive
             this._module.service(name, annotatedFunction);
             this.setAsRegistered(name);
         };
-        /**
-         * Register an angular factory.
-         * @method
-         * @param {Class} provider - The provider to register in angular module.
-         */
         ApplicationModule.prototype.registerFactory = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             var factoryMetadata = _.find(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FactoryMetadata; });
             if (!factoryMetadata) {
                 return;
             }
-            var name = factoryMetadata.getInjectionName();
+            var name = factoryMetadata.getInjectionName(provider);
             if (this.isRegistered(name)) {
-                // TODO: check if registration is same type or else throw error
                 return;
             }
-            // add inline annotated function to directive provider
             var annotatedFunction = this.getInlineAnnotatedFunction(provider);
-            // set module directive
             this._module.factory(name, function () { return annotatedFunction; });
             this.setAsRegistered(name);
         };
-        /**
-         * Gets the function or inline annotated function if injection.
-         * @method
-         * @param {Type} provider - the current function to inject.
-         * @return {Function|any[]}
-         */
         ApplicationModule.prototype.getInlineAnnotatedFunction = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             var injection = _.find(metadatas, function (metadata) { return metadata instanceof injection_metadata_2.InjectionMetadata; });
@@ -540,9 +492,8 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                     result.push(param.propertyName);
                     return;
                 }
-                result.push(injectedTypeMetadata.getInjectionName());
+                result.push(injectedTypeMetadata.getInjectionName(param.propertyType));
             });
-            // set the new contructor
             var annotatedFunc = function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
@@ -553,22 +504,12 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                 for (var index = 0; index < injection.data.length; index++) {
                     obj[injection.data[index].propertyName] = args[index];
                 }
-                // if implementing OnInit
-                if (_.isFunction(obj.ngOnInit)) {
-                    obj.ngOnInit();
-                }
                 return obj;
             };
-            // copy prototype so intanceof operator still works
             annotatedFunc.prototype = provider.prototype;
             result.push(annotatedFunc);
             return result;
         };
-        /**
-         * Utility function to generate instances of a class
-         * @param constructor
-         * @param arguments
-         */
         ApplicationModule.construct = function (constructor, args) {
             var component = function () {
                 return constructor.apply(this, args);
@@ -576,85 +517,39 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             component.prototype = constructor.prototype;
             return new component();
         };
-        //#endregion
-        //#region ----- Metadata Utils -----
-        /**
-         * Gets a value indicating whether provider function is angular directive.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isDirective = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof directive_metadata_3.DirectiveMetadata; });
         };
-        /**
-         * Gets a value indicating whether provider function is angular component.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isComponent = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
         };
-        /**
-         * Gets a value indicating whether provider function is angular service.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isService = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ServiceMetadata; });
         };
-        /**
-         * Gets a value indicating whether provider function is angular factory.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isFactory = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FactoryMetadata; });
         };
-        /**
-         * Gets a value indicating whether provider function is angular Provider.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isProvider = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ProviderMetadata; });
         };
-        /**
-         * Gets a value indicating whether provider function is angular filter.
-         * @method
-         * @param {Class} provider - Provider to add to register to angular module
-         * @return {boolean}
-         */
         ApplicationModule.prototype.isFilter = function (provider) {
             var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FilterMetadata; });
         };
-        //#endregion
-        //#region ----- routing Utils -----
-        /**
-         * Configure module for routing.
-         * @method
-         */
         ApplicationModule.prototype.configureRouting = function () {
             var _this = this;
             this._module.config(["$stateProvider", "$urlRouterProvider",
                 function ($stateProvider, $urlRouterProvider) {
-                    // if one default state
                     var defaultRoute = _.find(_this._routes, function (route) { return route.useAsDefault; });
                     if (defaultRoute) {
                         $urlRouterProvider.otherwise(defaultRoute.name);
                     }
                     _.each(_this._routes, function (route) {
-                        // get component metadata
                         var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, route.component);
                         var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
                         if (!metadata) {
@@ -663,7 +558,8 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                         $stateProvider.state({
                             url: route.path,
                             template: "<" + metadata.selector + "></" + metadata.selector + ">",
-                            name: route.name
+                            name: route.name,
+                            $$routeDefinition: route
                         });
                     });
                 }]);
@@ -671,53 +567,29 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         return ApplicationModule;
     }());
     exports.ApplicationModule = ApplicationModule;
-    /**
-     * Create an angular module.
-     * @param {string} name - Angular module name.
-     * @param {{string|IModule}[]} modules - Module dependencies.
-     * @return {IModule}
-     */
     function module(name, modules) {
         return new ApplicationModule(name, modules);
     }
-    /**
-     * Compile a component and its dependencies and create an angular module.
-     * @param {Class} component - Component to compile in an angular module.
-     * @param {{string|IModule}[]} modules - Module dependencies.
-     * @return {IModule}
-     */
     function compile(component, modules) {
         var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
         var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
         if (!componentMetadata) {
             throw new TypeError("Only module component can be compiled");
         }
-        var name = componentMetadata.getInjectionName();
+        var name = componentMetadata.getInjectionName(component);
         return compileComponent(name, component, modules);
     }
     exports.compile = compile;
-    /**
-     * Compile a component and its dependencies and create an angular module.
-     * @param {string} name - Module name.
-     * @param {Class} component - Component to compile in an angular module.
-     * @param {{string|IModule}[]} modules - Module dependencies.
-     * @return {IModule}
-     */
     function compileComponent(name, component, modules) {
         return module(name, modules).add(component);
     }
-    /**
-     * Bootstrap a component to the DOM
-     * @param {Class} component - The component to bootstrap.
-     * @param {{string|IModule}[]} modules - Module dependencies.
-     */
     function bootstrap(component, modules) {
         var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
         var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
         if (!componentMetadata) {
             throw new TypeError("Only module component can be bootstrapped");
         }
-        var name = componentMetadata.getInjectionName();
+        var name = componentMetadata.getInjectionName(component);
         var module = compileComponent(name, component, modules);
         var element = angular.element(componentMetadata.selector);
         if (element.length === 0) {
@@ -725,7 +597,6 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             return;
         }
         angular.bootstrap(element, [name]);
-        // the following is required if you want AngularJS Scenario tests to work
         $(element).addClass("ng-app: " + name);
     }
     exports.bootstrap = bootstrap;
@@ -737,10 +608,29 @@ define("angularjs-annotations/router/decorators", ["require", "exports", "angula
     }
     exports.RouteConfig = RouteConfig;
 });
-define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators"], function (require, exports, decorators_2) {
+define("angularjs-annotations/router/directives/router.outlet", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_3) {
+    "use strict";
+    var RouterOutlet = (function () {
+        function RouterOutlet() {
+        }
+        RouterOutlet = __decorate([
+            decorators_3.Directive({
+                selector: "router-outlet",
+                template: "<div ui-view></div>",
+            }), 
+            __metadata('design:paramtypes', [])
+        ], RouterOutlet);
+        return RouterOutlet;
+    }());
+    exports.RouterOutlet = RouterOutlet;
+});
+define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_4, router_outlet_1, router_1) {
     "use strict";
     function __export(m) {
         for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
     }
-    __export(decorators_2);
+    __export(decorators_4);
+    exports.Router = router_1.Router;
+    exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet];
+    exports.ROUTER_PROVIDERS = [router_1.Router];
 });

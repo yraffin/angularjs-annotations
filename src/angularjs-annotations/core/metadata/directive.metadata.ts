@@ -7,7 +7,7 @@ export interface IDirectiveMetadata {
     templateUrl?: string | ((element: angular.IAugmentedJQuery, attributes: angular.IAttributes) => string);
     exportAs?: string;
     events?: string[];
-    providers?: Array<Class | string>;
+    providers?: Array<Class | Class[]>;
     properties?: Array<string>
 }
 
@@ -17,7 +17,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
     public templateUrl: string | ((element: angular.IAugmentedJQuery, attributes: angular.IAttributes) => string);
     public exportAs: string;
     public events: string[];
-    public providers: Array<Class | string>;
+    public providers: Array<Class | Class[]>;
     public properties: Array<string>
 
     constructor(data: IDirectiveMetadata) {
@@ -36,6 +36,18 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
      * @return {Class[]}
      */
     getLinkedClasses(): Class[] {
-        return _.filter(this.providers || [], provider => _.isFunction(provider)) as Class[];
+        return this.getLinkedClassesFromSource(this.providers);
+    }
+
+    /**
+     * Gets an array of linked Class to register with directive.
+     * @return {Class[]}
+     */
+    getLinkedClassesFromSource(source: Array<any>): Class[] {
+        var result = _.filter(source || [], provider => _.isFunction(provider)) || [] as Class[];
+        _.filter(source || [], provider => _.isArray(provider)).forEach(providerList => {
+            result = _.union(result, this.getLinkedClassesFromSource(providerList));
+        });
+        return result;
     }
 }

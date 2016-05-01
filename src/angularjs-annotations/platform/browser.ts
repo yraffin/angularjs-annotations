@@ -4,6 +4,7 @@ import {InjectionMetadata, IInjectableProperty} from "angularjs-annotations/core
 import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
 import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
+import {IRoute} from "angularjs-annotations/router/providers/router";
 import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {Class} from "angularjs-annotations/core/types"
 
@@ -170,7 +171,7 @@ export class ApplicationModule implements IModule {
             return;
         }
 
-        var name = directiveMetadata.getInjectionName();
+        var name = directiveMetadata.getInjectionName(provider);
         if (this.isRegistered(name)) {
             // TODO: check if registration is same type or else throw error
             return;
@@ -203,8 +204,10 @@ export class ApplicationModule implements IModule {
         }
 
         // set compile function
+        directive.link = this.getDirectiveLinkFunction(provider, directiveMetadata);
+        
         if (provider["compile"]) {
-            directive.link = provider["compile"];
+            directive.compile = provider["compile"];
         }
 
         // add controller as function or inlineAnnotatedFunction
@@ -221,6 +224,35 @@ export class ApplicationModule implements IModule {
         }
 
         _.each(linkedClasses, linkedClass => this.add(linkedClass));
+    }
+    
+    /**
+     * Gets the directive link function.
+     */
+    getDirectiveLinkFunction(provider:Class, metadata: DirectiveMetadata): Function{
+        var controllerName = metadata.exportAs || metadata.getInjectionName(provider);
+        return (scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes, controllers?: any) => {
+            if (provider["link"] && _.isFunction(provider["link"])) {
+                provider["link"](scope, element, attributes, controllers);
+            }
+            
+            // TODO: manage scope on destroy et on init + css if on metadata
+            
+            var to:number;
+            var listener = scope.$watch(() => {
+                clearTimeout(to);
+                to = setTimeout(() => {                    
+                    listener();
+                    
+                    // OnInit implementation
+                    if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit)){
+                        scope[controllerName].ngOnInit();
+                    }
+                    
+                    scope.$broadcast("angularjsannotations.initialized");
+                }, 50);
+            })
+        };
     }
 
     /**
@@ -253,7 +285,7 @@ export class ApplicationModule implements IModule {
             return;
         }
 
-        var name = serviceMetadata.getInjectionName();
+        var name = serviceMetadata.getInjectionName(provider);
         if (this.isRegistered(name)) {
             // TODO: check if registration is same type or else throw error
             return;
@@ -279,7 +311,7 @@ export class ApplicationModule implements IModule {
             return;
         }
 
-        var name = factoryMetadata.getInjectionName();
+        var name = factoryMetadata.getInjectionName(provider);
         if (this.isRegistered(name)) {
             // TODO: check if registration is same type or else throw error
             return;
@@ -324,7 +356,7 @@ export class ApplicationModule implements IModule {
                 return;
             }
 
-            result.push(injectedTypeMetadata.getInjectionName());
+            result.push(injectedTypeMetadata.getInjectionName(param.propertyType));
         });
 
         // set the new contructor
@@ -333,11 +365,6 @@ export class ApplicationModule implements IModule {
             let obj = ApplicationModule.construct(provider, providerArguments);
             for (let index = 0; index < injection.data.length; index++) {
                 obj[injection.data[index].propertyName] = args[index];
-            }
-
-            // if implementing OnInit
-            if (_.isFunction(obj.ngOnInit)) {
-                obj.ngOnInit();
             }
 
             return obj;
@@ -462,8 +489,10 @@ export class ApplicationModule implements IModule {
                     $stateProvider.state({
                         url: route.path,
                         template: "<" + metadata.selector + "></" + metadata.selector + ">",
-                        name: route.name
-                    });
+                        name: route.name,
+                        // TODO: see template provider for lazy loading
+                        $$routeDefinition: route
+                    } as IRoute);
                 });
             }]);
     }
@@ -494,7 +523,7 @@ export function compile(component: Class, modules?: Array<string | IModule>): IM
         throw new TypeError("Only module component can be compiled");
     }
 
-    var name = componentMetadata.getInjectionName();
+    var name = componentMetadata.getInjectionName(component);
     return compileComponent(name, component, modules);
 }
 
@@ -521,7 +550,7 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
         throw new TypeError("Only module component can be bootstrapped");
     }
 
-    var name = componentMetadata.getInjectionName();
+    var name = componentMetadata.getInjectionName(component);
     var module = compileComponent(name, component, modules);
 
     var element = angular.element(componentMetadata.selector);

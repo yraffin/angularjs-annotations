@@ -1,5 +1,5 @@
 ﻿import { Component, Directive, Inject } from "angularjs-annotations/core";
-import { RouteConfig } from "angularjs-annotations/router";
+import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
 import { HeroesComponent } from "app/heroes.component";
 
 
@@ -9,8 +9,11 @@ import { HeroesComponent } from "app/heroes.component";
         <h2>{{myApp.title}}</h2>\
         <button class=\"md-raised md-primary\" ng-click=\"myApp.goToHeroes()\">click me</button>\
         <br/> \
-        <div ui-view></div>\
-        "
+        <router-outlet></router-outlet>\
+        ",
+    styleUrls: ["app/app.component.css"],
+    directives: [ROUTER_DIRECTIVES],
+    providers: [ROUTER_PROVIDERS]
 })
 @RouteConfig([
     {
@@ -23,10 +26,10 @@ class AppComponent {
     public title = "Tour of Heroes";
 
     @Inject()
-    public $state: angular.ui.IStateService;
+    private _router: Router;
 
     public goToHeroes() {
-        this.$state.go("Heroes");
+        this._router.navigate("Heroes");
     }
 }
 

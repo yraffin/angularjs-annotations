@@ -2,11 +2,13 @@
 import {Class} from "angularjs-annotations/core/types"
 
 export interface IComponentMetadata extends IDirectiveMetadata {
-    directives?: Array<Class | string>;
+    directives?: Array<Class | Class[]>;
+    styleUrls?: Array<string>;
 }
 
 export class ComponentMetadata extends DirectiveMetadata implements IComponentMetadata {
-    public directives: Array<Class | string>;
+    public directives: Array<Class | Class[]>;
+    public styleUrls: Array<string>;
 
     constructor(data: IComponentMetadata) {
         super(data);
@@ -15,6 +17,7 @@ export class ComponentMetadata extends DirectiveMetadata implements IComponentMe
         }
 
         this.directives = data.directives;
+        this.styleUrls = data.styleUrls;
     }
 
     /**
@@ -23,7 +26,7 @@ export class ComponentMetadata extends DirectiveMetadata implements IComponentMe
      */
     getLinkedClasses(): Class[] {
         var providers = super.getLinkedClasses();
-        var directives = _.filter(this.directives || [], directive => _.isFunction(directive)) as Class[];
+        var directives = this.getLinkedClassesFromSource(this.directives);
         return _.union(providers, directives);
     }
 }

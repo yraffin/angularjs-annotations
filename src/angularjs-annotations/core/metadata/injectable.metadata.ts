@@ -1,32 +1,39 @@
-﻿
+﻿import {Class} from "angularjs-annotations/core/types"
+
 export interface IInjectableMetadata {
     selector?: string;
-    getInjectionName: () => string;
+    name?: string;
+    getInjectionName: (provider?: Class) => string;
     getClassName: () => string;
 }
 
 export class InjectableMetadata implements IInjectableMetadata {
-
     /**
      * Get current class injection name.
      * @method
+     * @param {Class} provider - The provider class to inject.
      * @return {string}
      */
-    public getInjectionName() {
+    public getInjectionName(provider?: Class) {
+        if (this["name"]){
+            return this["name"];
+        }
+        
         if (this["selector"]) {
             return this.getSelectorInjectionName();
         }
 
-        return this.getClassName();
+        return this.getClassName(provider);
     }
 
     /**
      * Get current class name.
      * @method
+     * @param {Class} provider - The provider class to inject.
      * @return {string}
      */
-    public getClassName() {
-        let self = this.constructor as any;
+    public getClassName(provider?:Class) {
+        let self = provider ? provider : this.constructor as any;
         if (self.name) {
             return self.name;
         } 
