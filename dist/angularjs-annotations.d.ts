@@ -4,6 +4,10 @@ declare module "angularjs-annotations/core/types" {
     }
     export { Class };
 }
+declare module "angularjs-annotations/core/core.utils" {
+    export function normalize(s: string): string;
+    export function deNormalize(s: string): string;
+}
 declare module "angularjs-annotations/core/metadata/injectable.metadata" {
     import { Class } from "angularjs-annotations/core/types";
     export interface IInjectableMetadata {
@@ -16,8 +20,6 @@ declare module "angularjs-annotations/core/metadata/injectable.metadata" {
         getInjectionName(provider?: Class): any;
         getClassName(provider?: Class): any;
         private getSelectorInjectionName();
-        private normalize(s);
-        private deNormalize(s);
     }
 }
 declare module "angularjs-annotations/core/metadata/directive.metadata" {
@@ -31,6 +33,7 @@ declare module "angularjs-annotations/core/metadata/directive.metadata" {
         events?: string[];
         providers?: Array<Class | Class[]>;
         properties?: Array<string>;
+        replace?: boolean;
     }
     export class DirectiveMetadata extends InjectableMetadata implements IDirectiveMetadata, IInjectableMetadata {
         selector: string;
@@ -40,6 +43,7 @@ declare module "angularjs-annotations/core/metadata/directive.metadata" {
         events: string[];
         providers: Array<Class | Class[]>;
         properties: Array<string>;
+        replace: boolean;
         constructor(data: IDirectiveMetadata);
         getLinkedClasses(): Class[];
         getLinkedClassesFromSource(source: Array<any>): Class[];
@@ -50,10 +54,12 @@ declare module "angularjs-annotations/core/metadata/component.metadata" {
     import { Class } from "angularjs-annotations/core/types";
     export interface IComponentMetadata extends IDirectiveMetadata {
         directives?: Array<Class | Class[]>;
+        styles?: Array<string>;
         styleUrls?: Array<string>;
     }
     export class ComponentMetadata extends DirectiveMetadata implements IComponentMetadata {
         directives: Array<Class | Class[]>;
+        styles: Array<string>;
         styleUrls: Array<string>;
         constructor(data: IComponentMetadata);
         getLinkedClasses(): Class[];
@@ -67,6 +73,16 @@ declare module "angularjs-annotations/core/metadata/injection.metadata" {
     }
     export class InjectionMetadata {
         data: Array<IInjectableProperty>;
+    }
+}
+declare module "angularjs-annotations/core/metadata/input.metadata" {
+    export interface IInputProperty {
+        inputName: string;
+        propertyName: string;
+        propertyType: any;
+    }
+    export class InputMetadata {
+        data: Array<IInputProperty>;
     }
 }
 declare module "angularjs-annotations/core/metadata/providers.metadata" {
@@ -104,17 +120,17 @@ declare module "angularjs-annotations/core/decorators" {
     export function Provider(): (target: Class) => void;
     export function Filter(): (target: Class) => void;
     export function Inject(name?: string): (target: Object, targetKey: string) => void;
+    export function Input(name?: string): (target: Object, targetKey: string) => void;
 }
 declare module "angularjs-annotations/core" {
     export * from "angularjs-annotations/core/decorators";
     export * from "angularjs-annotations/core/types";
-    interface OnInit {
+    export interface OnInit {
         ngOnInit(): void;
     }
-    interface OnDestroy {
+    export interface OnDestroy {
         ngOnDestroy(): void;
     }
-    export { OnInit, OnDestroy };
 }
 declare module "angularjs-annotations/router/metadata/route.config.metadata" {
     import { Class } from "angularjs-annotations/core/types";
@@ -123,12 +139,28 @@ declare module "angularjs-annotations/router/metadata/route.config.metadata" {
         name: string;
         component?: Class;
         useAsDefault?: boolean;
-        loader?: angular.IPromise<Function>;
-        lazyLoad?: boolean;
+        loader?: {
+            path: string;
+            name?: string;
+        };
     }
     export class RouteConfigMetadata {
         data: Array<IRouteDefinition>;
         constructor(data: Array<IRouteDefinition>);
+    }
+}
+declare module "angularjs-annotations/router/directives/require.loader" {
+    import { Class } from "angularjs-annotations/core/types";
+    export const REQUIRE_LOADER: string;
+    export class RequireLoader {
+        private _compile;
+        private _q;
+        loader: {
+            path: string;
+            name: string;
+        };
+        link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
+        load(name: string, path: string): angular.IPromise<Class>;
     }
 }
 declare module "angularjs-annotations/router/providers/router" {
@@ -138,8 +170,11 @@ declare module "angularjs-annotations/router/providers/router" {
     }
     export class Router {
         private _state;
+        private _stateParams;
         routes: Array<IRoute>;
+        getParam(name: string): any;
         navigate(stateName: string, params?: {}, options?: angular.ui.IStateOptions): void;
+        goBack(distance?: any): void;
     }
 }
 declare module "angularjs-annotations/platform/browser" {
@@ -150,6 +185,7 @@ declare module "angularjs-annotations/platform/browser" {
         add: (...providers: Array<Class>) => IModule;
         config: (config: Function | Array<any>) => IModule;
         run: (run: Function | Array<any>) => IModule;
+        registerDependency: (componentModule: IModule) => void;
     }
     export const UI_ROUTER: string;
     export class ApplicationModule implements IModule {
@@ -163,6 +199,7 @@ declare module "angularjs-annotations/platform/browser" {
         config(configFn: Function): IModule;
         run(annotatedFunction: Array<any>): IModule;
         run(initializationFn: Function): IModule;
+        registerDependency(componentModule: IModule): void;
         private setAsRegistered(name);
         private isRegistered(name);
         private registerRoutes(provider);
@@ -173,6 +210,8 @@ declare module "angularjs-annotations/platform/browser" {
         private registerFactory(provider);
         private getInlineAnnotatedFunction(provider);
         static construct(constructor: any, args: any): any;
+        private isUrl(text);
+        private formatStyleTag(style, code, isUrl?);
         private isDirective(provider);
         private isComponent(provider);
         private isService(provider);
@@ -180,6 +219,7 @@ declare module "angularjs-annotations/platform/browser" {
         private isProvider(provider);
         private isFilter(provider);
         private configureRouting();
+        private getTemplateProvider(route);
     }
     export function compile(component: Class, modules?: Array<string | IModule>): IModule;
     export function bootstrap(component: Class, modules?: Array<string | IModule>): void;

@@ -1,4 +1,5 @@
 ﻿import { Component, Directive, Inject, OnInit} from "angularjs-annotations/core";
+import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
 import { HeroService, Hero } from "app/hero.service";
 
 @Component({
@@ -12,6 +13,9 @@ class HeroesComponent implements OnInit{
 
     @Inject()
     private _heroService: HeroService;
+
+    @Inject()
+    private _router: Router;
 
     getHeroes() {
         this._heroService.getHeroes().then(heroes => this.heroes = heroes);
@@ -27,7 +31,7 @@ class HeroesComponent implements OnInit{
     }
 
     gotoDetail() {
-        alert("Go to detail of hero: " + this.selectedHero.name);
+        this._router.navigate("HeroDetail", { id: this.selectedHero.id });
     }
 }
 

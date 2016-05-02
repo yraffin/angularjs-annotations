@@ -8,7 +8,8 @@ export interface IDirectiveMetadata {
     exportAs?: string;
     events?: string[];
     providers?: Array<Class | Class[]>;
-    properties?: Array<string>
+    properties?: Array<string>;
+    replace?: boolean;
 }
 
 export class DirectiveMetadata extends InjectableMetadata implements IDirectiveMetadata, IInjectableMetadata {
@@ -18,7 +19,8 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
     public exportAs: string;
     public events: string[];
     public providers: Array<Class | Class[]>;
-    public properties: Array<string>
+    public properties: Array<string>;
+    public replace: boolean;
 
     constructor(data: IDirectiveMetadata) {
         super();
@@ -29,6 +31,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
         this.events = data.events;
         this.providers = data.providers;
         this.properties = data.properties;
+        this.replace = data.replace;
     }
 
     /**

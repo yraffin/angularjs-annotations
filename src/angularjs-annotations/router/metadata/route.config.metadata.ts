@@ -5,17 +5,15 @@ export interface IRouteDefinition {
     name: string;
     component?: Class;
     useAsDefault?: boolean;
-    loader?: angular.IPromise<Function>;
-    lazyLoad?: boolean;
+    //loader?: angular.IPromise<Class>;
+    loader?:{path: string, name?: string};
 }
 
 
 export class RouteConfigMetadata {
     constructor(public data: Array<IRouteDefinition>) {
-        // if loader defined => lazy loading
-        _.filter(data, item => !!item.loader).forEach(item => item.lazyLoad = true);
-
-        // if component defined => no lazy loading
-        _.filter(data, item => !!item.component).forEach(item => item.lazyLoad = false);
+        if (_.any(data, item => !item.loader && !item.component)){
+            throw new TypeError("Either component or loader method should be defined in a route definition.");            
+        }
     }
 }

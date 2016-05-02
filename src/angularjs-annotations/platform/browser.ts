@@ -3,7 +3,10 @@ import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/cor
 import {InjectionMetadata, IInjectableProperty} from "angularjs-annotations/core/metadata/injection.metadata";
 import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
+import {InputMetadata, IInputProperty} from "angularjs-annotations/core/metadata/input.metadata";
+import {normalize, deNormalize} from "angularjs-annotations/core/core.utils"
 import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
+import {RequireLoader, REQUIRE_LOADER} from "angularjs-annotations/router/directives/require.loader"
 import {IRoute} from "angularjs-annotations/router/providers/router";
 import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {Class} from "angularjs-annotations/core/types"
@@ -13,12 +16,15 @@ export interface IModule {
     add: (...providers: Array<Class>) => IModule;
     config: (config: Function | Array<any>) => IModule;
     run: (run: Function | Array<any>) => IModule;
+    registerDependency: (componentModule: IModule) => void;
 }
 
 /**
  * Modules dictionary by name
  */
 const __Modules: _.Dictionary<angular.IModule> = {};
+
+var __BootstrapApplication__: IModule;
 
 export const UI_ROUTER = "ui.router";
 
@@ -110,6 +116,11 @@ export class ApplicationModule implements IModule {
         this._module.run(initialization as any);
         return this;
     }
+    
+    registerDependency(componentModule: IModule) {
+        this._module.requires = this._module.requires || [];
+        this._module.requires.push(componentModule.name); 
+    }
 
     //#endregion
 
@@ -184,6 +195,14 @@ export class ApplicationModule implements IModule {
         if (this.isComponent(provider)) {
             this.registerRoutes(provider);
         }
+        
+        // if input defined => add to properties
+        var inputMetadata = _.find(metadatas, (metadata) => metadata instanceof InputMetadata) as InputMetadata;
+        if (inputMetadata && inputMetadata.data.length > 0){
+            directiveMetadata.properties = _.union(directiveMetadata.properties || [], _.map(inputMetadata.data, inputData => {                
+                return inputData.propertyName + ": =" + (inputData.inputName || "");
+            }));
+        }
 
         var directive: angular.IDirective = {};
         directive.restrict = this.getDirectiveRestriction(directiveMetadata.selector.trim());
@@ -194,18 +213,14 @@ export class ApplicationModule implements IModule {
             directive.template = directiveMetadata.template;
         } else if (directiveMetadata.templateUrl) {
             directive.templateUrl = directiveMetadata.templateUrl;
-        } else {
-            throw new Error("Directive template should be define");
         }
 
+        directive.replace = directiveMetadata.replace || false;
+        
         // set link function
-        if (provider["link"]) {
-            directive.link = provider["link"];
-        }
-
-        // set compile function
         directive.link = this.getDirectiveLinkFunction(provider, directiveMetadata);
         
+        // set compile function        
         if (provider["compile"]) {
             directive.compile = provider["compile"];
         }
@@ -232,12 +247,42 @@ export class ApplicationModule implements IModule {
     getDirectiveLinkFunction(provider:Class, metadata: DirectiveMetadata): Function{
         var controllerName = metadata.exportAs || metadata.getInjectionName(provider);
         return (scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes, controllers?: any) => {
-            if (provider["link"] && _.isFunction(provider["link"])) {
-                provider["link"](scope, element, attributes, controllers);
+            if (scope[controllerName] && _.isFunction(scope[controllerName].link)) {
+                scope[controllerName].link(scope, element, attributes, controllers);
             }
             
-            // TODO: manage scope on destroy et on init + css if on metadata
+            // manage css for components
+            scope["__styles__"] = {};
+            _.each((metadata["styles"] || []) as string[], (style, index) => {
+                let code = controllerName + "_style_" + index;
+                scope["__styles__"][code] = this.formatStyleTag(style, code);
+                
+                // add style to DOM
+                $(document).find("head").append(scope["__styles__"][code]);
+            });
+            _.each((metadata["styleUrls"] || []) as string[], (style, index) => {
+                let code = controllerName + "_style_" + index;
+                scope["__styles__"][code] = this.formatStyleTag(style, code, true);
+                
+                // add style to DOM
+                $(document).find("head").append(scope["__styles__"][code]);
+            });
             
+            // TODO: manage scope on destroy et on init + css if on metadata
+            // Manage OnDestroy implementation
+            scope.$on('$destroy', () => {
+                // OnDestroy implementation
+                if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnDestroy)){
+                    scope[controllerName].ngOnDestroy();
+                }
+                
+                // Remove component css
+                _.each(scope["__styles__"], (value:string, key: string) => {
+                   $(document).find("head link[type='text/css'][data-code='" + key + "'],head style[type='text/css'][data-code='" + key + "']").remove();
+                });
+            });
+            
+            // Manage OnInit implementation
             var to:number;
             var listener = scope.$watch(() => {
                 clearTimeout(to);
@@ -245,11 +290,10 @@ export class ApplicationModule implements IModule {
                     listener();
                     
                     // OnInit implementation
-                    if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit)){
+                    if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit) && !scope[controllerName].__ngIsInit__){
                         scope[controllerName].ngOnInit();
+                        scope[controllerName].__ngIsInit__ = true;
                     }
-                    
-                    scope.$broadcast("angularjsannotations.initialized");
                 }, 50);
             })
         };
@@ -393,6 +437,40 @@ export class ApplicationModule implements IModule {
 
     //#endregion
 
+    //#region ----- Utils -----
+    
+    /**
+     * Gets a value indicating whether text is a valid url.
+     * @method
+     * @param {string} text - Text to check.
+     * @return {boolean}
+     */
+    private isUrl(text: string): boolean{
+        var regexp = new RegExp('^(https?:\/\/)?'+ // protocol
+                    '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|'+ // domain name
+                    '((\d{1,3}\.){3}\d{1,3}))'+ // OR ip (v4) address
+                    '(\:\d+)?(\/[-a-z\d%_.~+]*)*'+ // port and path
+                    '(\?[;&a-z\d%_.~+=-]*)?'+ // query string
+                    '(\#[-a-z\d_]*)?$','i'); // fragment locater
+        return regexp.test(text);
+    }
+    
+    /**
+     * Format the corresposponding style tag to import in header.
+     * @method
+     * @param {string} style - The style text to import.
+     * @return {string}
+     */
+    private formatStyleTag(style: string, code: string, isUrl?: boolean): string {
+        if (isUrl){
+            return "<link rel=\"stylesheet\" type=\"text/css\" data-code=\"" + code + "\" href=\"" + style + "\" />"
+        }
+        
+        return "<style type=\"text/css\" data-code=\"" + code + "\">" + style + "</style>";
+    }
+
+    //#endregion
+
     //#region ----- Metadata Utils -----
 
     /**
@@ -479,13 +557,24 @@ export class ApplicationModule implements IModule {
                 }
 
                 _.each(this._routes, route => {
+                    // if lazy loading component
+                    if (!route.component && route.loader) {
+                        $stateProvider.state({
+                            url: route.path,
+                            template: "<" + REQUIRE_LOADER + " path=\"" + route.loader.path + "\" name=\"" + route.loader.name + "\"></" + REQUIRE_LOADER + ">",
+                            name: route.name,
+                            $$routeDefinition: route
+                        } as IRoute);
+                        return;
+                    }
+                    
                     // get component metadata
                     let metadatas = Reflect.getMetadata(METADATA_KEY, route.component);
                     let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
                     if (!metadata) {
-                        return;
+                        throw new TypeError("This route object is not a component. Route: " + route.name );
                     }
-
+                    
                     $stateProvider.state({
                         url: route.path,
                         template: "<" + metadata.selector + "></" + metadata.selector + ">",
@@ -495,6 +584,31 @@ export class ApplicationModule implements IModule {
                     } as IRoute);
                 });
             }]);
+    }
+    
+    /**
+     * Gets the route template provider.
+     * @method
+     * @param {IRouteDefinition} route - The current route definition.
+     * @return {Function|Array<string|Function>}
+     */
+    private getTemplateProvider(route: IRouteDefinition): Function|Array<string|Function>{
+        if (!route.loader){
+            throw new Error("You have to specify a loader method");
+        }
+        
+        return ["$q", function($q){
+            return require([route.loader.path], exportedComponent => {
+                let component = route.loader.name ? exportedComponent[route.loader.name] : exportedComponent as Class;
+                let metadatas = Reflect.getMetadata(METADATA_KEY, component);
+                let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
+                if (!metadata) {
+                    throw new TypeError("This imported object is not a component. Path: " + route.loader.path + " ; Name: " + route.loader.name );
+                }
+                
+                return "<" + metadata.selector + "></" + metadata.selector + ">";
+            });
+        }];
     }
 
     //#endregion
@@ -524,7 +638,12 @@ export function compile(component: Class, modules?: Array<string | IModule>): IM
     }
 
     var name = componentMetadata.getInjectionName(component);
-    return compileComponent(name, component, modules);
+    var appModule =  compileComponent(name, component, modules);
+    
+    if (__BootstrapApplication__){
+        __BootstrapApplication__.registerDependency(appModule);
+    }
+    return appModule;
 }
 
 /**
@@ -551,7 +670,7 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     }
 
     var name = componentMetadata.getInjectionName(component);
-    var module = compileComponent(name, component, modules);
+    var appModule = compileComponent(name, component, modules);
 
     var element = angular.element(componentMetadata.selector);
     if (element.length === 0) {
@@ -562,4 +681,5 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     angular.bootstrap(element, [name]);
     // the following is required if you want AngularJS Scenario tests to work
     $(element).addClass("ng-app: " + name);
+    __BootstrapApplication__ = appModule;
 }

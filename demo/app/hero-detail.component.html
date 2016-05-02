@@ -1,0 +1,11 @@
+<div ng-if="myHeroDetail.hero">
+    <h2>{{myHeroDetail.hero.name}} details</h2>
+    <div>
+    <label>id: </label>{{myHeroDetail.hero.id}}
+    </div>
+  <div>
+    <label>name: </label>
+    <input ng-model="myHeroDetail.hero.name" placeholder="name" />
+  </div>
+  <button ng-click="myHeroDetail.goBack()">Back</button>
+</div>

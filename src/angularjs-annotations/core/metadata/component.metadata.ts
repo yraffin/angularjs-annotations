@@ -3,11 +3,13 @@ import {Class} from "angularjs-annotations/core/types"
 
 export interface IComponentMetadata extends IDirectiveMetadata {
     directives?: Array<Class | Class[]>;
+    styles?: Array<string>;
     styleUrls?: Array<string>;
 }
 
 export class ComponentMetadata extends DirectiveMetadata implements IComponentMetadata {
     public directives: Array<Class | Class[]>;
+    public styles: Array<string>;
     public styleUrls: Array<string>;
 
     constructor(data: IComponentMetadata) {
@@ -16,8 +18,9 @@ export class ComponentMetadata extends DirectiveMetadata implements IComponentMe
             throw new TypeError("Component selector should be alphanumeric");
         }
 
-        this.directives = data.directives;
-        this.styleUrls = data.styleUrls;
+        this.directives = data.directives || [];
+        this.styles = data.styles || [];
+        this.styleUrls = data.styleUrls || [];
     }
 
     /**

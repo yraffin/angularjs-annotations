@@ -15,7 +15,26 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 define("angularjs-annotations/core/types", ["require", "exports"], function (require, exports) {
     "use strict";
 });
-define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "exports"], function (require, exports) {
+define("angularjs-annotations/core/core.utils", ["require", "exports"], function (require, exports) {
+    "use strict";
+    function normalize(s) {
+        var normalized = _.isString(s)
+            ? s.replace(/[A-Z]/g, function (ch) { return "-" + String.fromCharCode(ch.charCodeAt(0) | 32); })
+            : s;
+        normalized = normalized.replace(/^-+/g, "");
+        return normalized;
+    }
+    exports.normalize = normalize;
+    function deNormalize(s) {
+        var normalized = _.isString(s)
+            ? s.replace(/\-[a-z]/g, function (ch) { return ch.substr(1, 1).toUpperCase(); })
+            : s;
+        normalized = normalized.replace(/^-+/g, "");
+        return normalized;
+    }
+    exports.deNormalize = deNormalize;
+});
+define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "exports", "angularjs-annotations/core/core.utils"], function (require, exports, core_utils_1) {
     "use strict";
     var InjectableMetadata = (function () {
         function InjectableMetadata() {
@@ -40,26 +59,12 @@ define("angularjs-annotations/core/metadata/injectable.metadata", ["require", "e
             var selector = this["selector"].trim();
             if (selector.match(/\[[a-zA-Z0-9\-_]+\]/ig)) {
                 var match = selector.match(/\[[a-zA-Z0-9\-_]+\]/ig)[0];
-                return this.deNormalize(match.substring(1, match.length - 1));
+                return core_utils_1.deNormalize(match.substring(1, match.length - 1));
             }
             if (selector.substr(0, 1) === ".") {
-                return this.deNormalize(selector.substr(1));
+                return core_utils_1.deNormalize(selector.substr(1));
             }
-            return this.deNormalize(selector);
-        };
-        InjectableMetadata.prototype.normalize = function (s) {
-            var normalized = _.isString(s)
-                ? s.replace(/[A-Z]/g, function (ch) { return "-" + String.fromCharCode(ch.charCodeAt(0) | 32); })
-                : s;
-            normalized = normalized.replace(/^-+/g, "");
-            return normalized;
-        };
-        InjectableMetadata.prototype.deNormalize = function (s) {
-            var normalized = _.isString(s)
-                ? s.replace(/\-[a-z]/g, function (ch) { return ch.substr(1, 1).toUpperCase(); })
-                : s;
-            normalized = normalized.replace(/^-+/g, "");
-            return normalized;
+            return core_utils_1.deNormalize(selector);
         };
         return InjectableMetadata;
     }());
@@ -78,6 +83,7 @@ define("angularjs-annotations/core/metadata/directive.metadata", ["require", "ex
             this.events = data.events;
             this.providers = data.providers;
             this.properties = data.properties;
+            this.replace = data.replace;
         }
         DirectiveMetadata.prototype.getLinkedClasses = function () {
             return this.getLinkedClassesFromSource(this.providers);
@@ -103,8 +109,9 @@ define("angularjs-annotations/core/metadata/component.metadata", ["require", "ex
             if (!(/^[a-zA-Z0-9\-_]+$/ig).test(data.selector)) {
                 throw new TypeError("Component selector should be alphanumeric");
             }
-            this.directives = data.directives;
-            this.styleUrls = data.styleUrls;
+            this.directives = data.directives || [];
+            this.styles = data.styles || [];
+            this.styleUrls = data.styleUrls || [];
         }
         ComponentMetadata.prototype.getLinkedClasses = function () {
             var providers = _super.prototype.getLinkedClasses.call(this);
@@ -124,6 +131,16 @@ define("angularjs-annotations/core/metadata/injection.metadata", ["require", "ex
         return InjectionMetadata;
     }());
     exports.InjectionMetadata = InjectionMetadata;
+});
+define("angularjs-annotations/core/metadata/input.metadata", ["require", "exports"], function (require, exports) {
+    "use strict";
+    var InputMetadata = (function () {
+        function InputMetadata() {
+            this.data = [];
+        }
+        return InputMetadata;
+    }());
+    exports.InputMetadata = InputMetadata;
 });
 define("angularjs-annotations/core/metadata/providers.metadata", ["require", "exports", "angularjs-annotations/core/metadata/injectable.metadata"], function (require, exports, injectable_metadata_2) {
     "use strict";
@@ -194,7 +211,7 @@ define("angularjs-annotations/core/decorators.utils", ["require", "exports"], fu
     }
     exports.setPropertyKey = setPropertyKey;
 });
-define("angularjs-annotations/core/decorators", ["require", "exports", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, directive_metadata_2, component_metadata_1, injection_metadata_1, providers_metadata_1, decorators_utils_1) {
+define("angularjs-annotations/core/decorators", ["require", "exports", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, directive_metadata_2, component_metadata_1, injection_metadata_1, input_metadata_1, providers_metadata_1, decorators_utils_1) {
     "use strict";
     function Directive(options) {
         return decorators_utils_1.defineMetadata(new directive_metadata_2.DirectiveMetadata(options));
@@ -239,6 +256,25 @@ define("angularjs-annotations/core/decorators", ["require", "exports", "angularj
         };
     }
     exports.Inject = Inject;
+    function Input(name) {
+        return function (target, targetKey) {
+            var types = Reflect.getMetadata("design:type", target, targetKey);
+            var targetClass = target.prototype ? target : target.constructor;
+            var metadata = Reflect.getMetadata(decorators_utils_1.METADATA_KEY, targetClass) || [];
+            var inputMetaData = _.find(metadata, function (item) { return item instanceof input_metadata_1.InputMetadata; });
+            if (!inputMetaData) {
+                inputMetaData = new input_metadata_1.InputMetadata();
+                metadata.push(inputMetaData);
+            }
+            inputMetaData.data.push({
+                inputName: name,
+                propertyName: targetKey,
+                propertyType: types
+            });
+            Reflect.defineMetadata(decorators_utils_1.METADATA_KEY, metadata, targetClass);
+        };
+    }
+    exports.Input = Input;
 });
 define("angularjs-annotations/core", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_1) {
     "use strict";
@@ -252,14 +288,68 @@ define("angularjs-annotations/router/metadata/route.config.metadata", ["require"
     var RouteConfigMetadata = (function () {
         function RouteConfigMetadata(data) {
             this.data = data;
-            _.filter(data, function (item) { return !!item.loader; }).forEach(function (item) { return item.lazyLoad = true; });
-            _.filter(data, function (item) { return !!item.component; }).forEach(function (item) { return item.lazyLoad = false; });
+            if (_.any(data, function (item) { return !item.loader && !item.component; })) {
+                throw new TypeError("Either component or loader method should be defined in a route definition.");
+            }
         }
         return RouteConfigMetadata;
     }());
     exports.RouteConfigMetadata = RouteConfigMetadata;
 });
-define("angularjs-annotations/router/providers/router", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_2) {
+define("angularjs-annotations/router/directives/require.loader", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/decorators", "angularjs-annotations/platform/browser"], function (require, exports, decorators_utils_2, component_metadata_2, decorators_2, browser_1) {
+    "use strict";
+    exports.REQUIRE_LOADER = "requirejs-loader";
+    var RequireLoader = (function () {
+        function RequireLoader() {
+        }
+        RequireLoader.prototype.link = function (scope, element, attributes) {
+            var _this = this;
+            if (!this.loader) {
+                this.loader = {
+                    path: attributes["path"],
+                    name: attributes["name"]
+                };
+            }
+            this.load(this.loader.name, this.loader.path).then(function (component) {
+                var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
+                var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
+                if (!metadata) {
+                    throw new TypeError("This route object is not a component. Route: " + _this.loader.path);
+                }
+                browser_1.compile(component);
+                element.append(angular.element("<" + metadata.selector + "></" + metadata.selector + ">"));
+            });
+        };
+        RequireLoader.prototype.load = function (name, path) {
+            var defer = this._q.defer();
+            require([path], function (component) {
+                defer.resolve(component[name]);
+            });
+            return defer.promise;
+        };
+        __decorate([
+            decorators_2.Inject("$compile"), 
+            __metadata('design:type', Function)
+        ], RequireLoader.prototype, "_compile", void 0);
+        __decorate([
+            decorators_2.Inject("$q"), 
+            __metadata('design:type', Function)
+        ], RequireLoader.prototype, "_q", void 0);
+        __decorate([
+            decorators_2.Input(), 
+            __metadata('design:type', Object)
+        ], RequireLoader.prototype, "loader", void 0);
+        RequireLoader = __decorate([
+            decorators_2.Directive({
+                selector: exports.REQUIRE_LOADER,
+            }), 
+            __metadata('design:paramtypes', [])
+        ], RequireLoader);
+        return RequireLoader;
+    }());
+    exports.RequireLoader = RequireLoader;
+});
+define("angularjs-annotations/router/providers/router", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_3) {
     "use strict";
     var Router = (function () {
         function Router() {
@@ -271,24 +361,35 @@ define("angularjs-annotations/router/providers/router", ["require", "exports", "
             enumerable: true,
             configurable: true
         });
+        Router.prototype.getParam = function (name) {
+            return this._stateParams[name];
+        };
         Router.prototype.navigate = function (stateName, params, options) {
             this._state.go(stateName, params, options);
         };
+        Router.prototype.goBack = function (distance) {
+            window.history.back(distance);
+        };
         __decorate([
-            decorators_2.Inject("$state"), 
+            decorators_3.Inject("$state"), 
             __metadata('design:type', Object)
         ], Router.prototype, "_state", void 0);
+        __decorate([
+            decorators_3.Inject("$stateParams"), 
+            __metadata('design:type', Object)
+        ], Router.prototype, "_stateParams", void 0);
         Router = __decorate([
-            decorators_2.Service(), 
+            decorators_3.Service(), 
             __metadata('design:paramtypes', [])
         ], Router);
         return Router;
     }());
     exports.Router = Router;
 });
-define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_2, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_2, route_config_metadata_1, providers_metadata_2) {
+define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_3, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_3, input_metadata_2, route_config_metadata_1, require_loader_1, providers_metadata_2) {
     "use strict";
     var __Modules = {};
+    var __BootstrapApplication__;
     exports.UI_ROUTER = "ui.router";
     var ApplicationModule = (function () {
         function ApplicationModule(name, modules) {
@@ -348,6 +449,10 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             this._module.run(initialization);
             return this;
         };
+        ApplicationModule.prototype.registerDependency = function (componentModule) {
+            this._module.requires = this._module.requires || [];
+            this._module.requires.push(componentModule.name);
+        };
         ApplicationModule.prototype.setAsRegistered = function (name) {
             this._registeredClass.push(name);
         };
@@ -356,7 +461,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         };
         ApplicationModule.prototype.registerRoutes = function (provider) {
             var _this = this;
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             var routeMetadata = _.find(metadatas, function (metadata) { return metadata instanceof route_config_metadata_1.RouteConfigMetadata; });
             if (!routeMetadata) {
                 return;
@@ -372,7 +477,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         };
         ApplicationModule.prototype.registerDirective = function (provider) {
             var _this = this;
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             var directiveMetadata = _.find(metadatas, function (metadata) { return metadata instanceof directive_metadata_3.DirectiveMetadata; });
             if (!directiveMetadata) {
                 return;
@@ -387,6 +492,12 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             if (this.isComponent(provider)) {
                 this.registerRoutes(provider);
             }
+            var inputMetadata = _.find(metadatas, function (metadata) { return metadata instanceof input_metadata_2.InputMetadata; });
+            if (inputMetadata && inputMetadata.data.length > 0) {
+                directiveMetadata.properties = _.union(directiveMetadata.properties || [], _.map(inputMetadata.data, function (inputData) {
+                    return inputData.propertyName + ": =" + (inputData.inputName || "");
+                }));
+            }
             var directive = {};
             directive.restrict = this.getDirectiveRestriction(directiveMetadata.selector.trim());
             directive.controllerAs = directiveMetadata.exportAs || name;
@@ -396,12 +507,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             else if (directiveMetadata.templateUrl) {
                 directive.templateUrl = directiveMetadata.templateUrl;
             }
-            else {
-                throw new Error("Directive template should be define");
-            }
-            if (provider["link"]) {
-                directive.link = provider["link"];
-            }
+            directive.replace = directiveMetadata.replace || false;
             directive.link = this.getDirectiveLinkFunction(provider, directiveMetadata);
             if (provider["compile"]) {
                 directive.compile = provider["compile"];
@@ -416,20 +522,40 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             _.each(linkedClasses, function (linkedClass) { return _this.add(linkedClass); });
         };
         ApplicationModule.prototype.getDirectiveLinkFunction = function (provider, metadata) {
+            var _this = this;
             var controllerName = metadata.exportAs || metadata.getInjectionName(provider);
             return function (scope, element, attributes, controllers) {
-                if (provider["link"] && _.isFunction(provider["link"])) {
-                    provider["link"](scope, element, attributes, controllers);
+                if (scope[controllerName] && _.isFunction(scope[controllerName].link)) {
+                    scope[controllerName].link(scope, element, attributes, controllers);
                 }
+                scope["__styles__"] = {};
+                _.each((metadata["styles"] || []), function (style, index) {
+                    var code = controllerName + "_style_" + index;
+                    scope["__styles__"][code] = _this.formatStyleTag(style, code);
+                    $(document).find("head").append(scope["__styles__"][code]);
+                });
+                _.each((metadata["styleUrls"] || []), function (style, index) {
+                    var code = controllerName + "_style_" + index;
+                    scope["__styles__"][code] = _this.formatStyleTag(style, code, true);
+                    $(document).find("head").append(scope["__styles__"][code]);
+                });
+                scope.$on('$destroy', function () {
+                    if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnDestroy)) {
+                        scope[controllerName].ngOnDestroy();
+                    }
+                    _.each(scope["__styles__"], function (value, key) {
+                        $(document).find("head link[type='text/css'][data-code='" + key + "'],head style[type='text/css'][data-code='" + key + "']").remove();
+                    });
+                });
                 var to;
                 var listener = scope.$watch(function () {
                     clearTimeout(to);
                     to = setTimeout(function () {
                         listener();
-                        if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit)) {
+                        if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit) && !scope[controllerName].__ngIsInit__) {
                             scope[controllerName].ngOnInit();
+                            scope[controllerName].__ngIsInit__ = true;
                         }
-                        scope.$broadcast("angularjsannotations.initialized");
                     }, 50);
                 });
             };
@@ -444,7 +570,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             return "E";
         };
         ApplicationModule.prototype.registerService = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             var serviceMetadata = _.find(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ServiceMetadata; });
             if (!serviceMetadata) {
                 return;
@@ -458,7 +584,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             this.setAsRegistered(name);
         };
         ApplicationModule.prototype.registerFactory = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             var factoryMetadata = _.find(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FactoryMetadata; });
             if (!factoryMetadata) {
                 return;
@@ -472,7 +598,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             this.setAsRegistered(name);
         };
         ApplicationModule.prototype.getInlineAnnotatedFunction = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             var injection = _.find(metadatas, function (metadata) { return metadata instanceof injection_metadata_2.InjectionMetadata; });
             if (!injection || _.isEmpty(injection.data)) {
                 return provider;
@@ -487,7 +613,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                     result.push(param.propertyName);
                     return;
                 }
-                var injectedTypeMetadata = _.find(Reflect.getMetadata(decorators_utils_2.METADATA_KEY, param.propertyType) || [], function (metadata) { return metadata instanceof injectable_metadata_3.InjectableMetadata; });
+                var injectedTypeMetadata = _.find(Reflect.getMetadata(decorators_utils_3.METADATA_KEY, param.propertyType) || [], function (metadata) { return metadata instanceof injectable_metadata_3.InjectableMetadata; });
                 if (!injectedTypeMetadata) {
                     result.push(param.propertyName);
                     return;
@@ -517,28 +643,43 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             component.prototype = constructor.prototype;
             return new component();
         };
+        ApplicationModule.prototype.isUrl = function (text) {
+            var regexp = new RegExp('^(https?:\/\/)?' +
+                '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|' +
+                '((\d{1,3}\.){3}\d{1,3}))' +
+                '(\:\d+)?(\/[-a-z\d%_.~+]*)*' +
+                '(\?[;&a-z\d%_.~+=-]*)?' +
+                '(\#[-a-z\d_]*)?$', 'i');
+            return regexp.test(text);
+        };
+        ApplicationModule.prototype.formatStyleTag = function (style, code, isUrl) {
+            if (isUrl) {
+                return "<link rel=\"stylesheet\" type=\"text/css\" data-code=\"" + code + "\" href=\"" + style + "\" />";
+            }
+            return "<style type=\"text/css\" data-code=\"" + code + "\">" + style + "</style>";
+        };
         ApplicationModule.prototype.isDirective = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof directive_metadata_3.DirectiveMetadata; });
         };
         ApplicationModule.prototype.isComponent = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
-            return _.any(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
+            return _.any(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
         };
         ApplicationModule.prototype.isService = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ServiceMetadata; });
         };
         ApplicationModule.prototype.isFactory = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FactoryMetadata; });
         };
         ApplicationModule.prototype.isProvider = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.ProviderMetadata; });
         };
         ApplicationModule.prototype.isFilter = function (provider) {
-            var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, provider);
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FilterMetadata; });
         };
         ApplicationModule.prototype.configureRouting = function () {
@@ -550,10 +691,19 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                         $urlRouterProvider.otherwise(defaultRoute.name);
                     }
                     _.each(_this._routes, function (route) {
-                        var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, route.component);
-                        var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
-                        if (!metadata) {
+                        if (!route.component && route.loader) {
+                            $stateProvider.state({
+                                url: route.path,
+                                template: "<" + require_loader_1.REQUIRE_LOADER + " path=\"" + route.loader.path + "\" name=\"" + route.loader.name + "\"></" + require_loader_1.REQUIRE_LOADER + ">",
+                                name: route.name,
+                                $$routeDefinition: route
+                            });
                             return;
+                        }
+                        var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, route.component);
+                        var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
+                        if (!metadata) {
+                            throw new TypeError("This route object is not a component. Route: " + route.name);
                         }
                         $stateProvider.state({
                             url: route.path,
@@ -564,6 +714,22 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                     });
                 }]);
         };
+        ApplicationModule.prototype.getTemplateProvider = function (route) {
+            if (!route.loader) {
+                throw new Error("You have to specify a loader method");
+            }
+            return ["$q", function ($q) {
+                    return require([route.loader.path], function (exportedComponent) {
+                        var component = route.loader.name ? exportedComponent[route.loader.name] : exportedComponent;
+                        var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, component);
+                        var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
+                        if (!metadata) {
+                            throw new TypeError("This imported object is not a component. Path: " + route.loader.path + " ; Name: " + route.loader.name);
+                        }
+                        return "<" + metadata.selector + "></" + metadata.selector + ">";
+                    });
+                }];
+        };
         return ApplicationModule;
     }());
     exports.ApplicationModule = ApplicationModule;
@@ -571,26 +737,30 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         return new ApplicationModule(name, modules);
     }
     function compile(component, modules) {
-        var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
-        var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
+        var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, component);
+        var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
         if (!componentMetadata) {
             throw new TypeError("Only module component can be compiled");
         }
         var name = componentMetadata.getInjectionName(component);
-        return compileComponent(name, component, modules);
+        var appModule = compileComponent(name, component, modules);
+        if (__BootstrapApplication__) {
+            __BootstrapApplication__.registerDependency(appModule);
+        }
+        return appModule;
     }
     exports.compile = compile;
     function compileComponent(name, component, modules) {
         return module(name, modules).add(component);
     }
     function bootstrap(component, modules) {
-        var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
-        var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
+        var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, component);
+        var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
         if (!componentMetadata) {
             throw new TypeError("Only module component can be bootstrapped");
         }
         var name = componentMetadata.getInjectionName(component);
-        var module = compileComponent(name, component, modules);
+        var appModule = compileComponent(name, component, modules);
         var element = angular.element(componentMetadata.selector);
         if (element.length === 0) {
             console.log("Application not bootstrapped because selector \"" + componentMetadata.selector + "\" not found.");
@@ -598,23 +768,24 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         }
         angular.bootstrap(element, [name]);
         $(element).addClass("ng-app: " + name);
+        __BootstrapApplication__ = appModule;
     }
     exports.bootstrap = bootstrap;
 });
-define("angularjs-annotations/router/decorators", ["require", "exports", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, route_config_metadata_2, decorators_utils_3) {
+define("angularjs-annotations/router/decorators", ["require", "exports", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, route_config_metadata_2, decorators_utils_4) {
     "use strict";
     function RouteConfig(options) {
-        return decorators_utils_3.defineMetadata(new route_config_metadata_2.RouteConfigMetadata(options));
+        return decorators_utils_4.defineMetadata(new route_config_metadata_2.RouteConfigMetadata(options));
     }
     exports.RouteConfig = RouteConfig;
 });
-define("angularjs-annotations/router/directives/router.outlet", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_3) {
+define("angularjs-annotations/router/directives/router.outlet", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_4) {
     "use strict";
     var RouterOutlet = (function () {
         function RouterOutlet() {
         }
         RouterOutlet = __decorate([
-            decorators_3.Directive({
+            decorators_4.Directive({
                 selector: "router-outlet",
                 template: "<div ui-view></div>",
             }), 
@@ -624,13 +795,13 @@ define("angularjs-annotations/router/directives/router.outlet", ["require", "exp
     }());
     exports.RouterOutlet = RouterOutlet;
 });
-define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_4, router_outlet_1, router_1) {
+define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_5, router_outlet_1, require_loader_2, router_1) {
     "use strict";
     function __export(m) {
         for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
     }
-    __export(decorators_4);
+    __export(decorators_5);
     exports.Router = router_1.Router;
-    exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet];
+    exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet, require_loader_2.RequireLoader];
     exports.ROUTER_PROVIDERS = [router_1.Router];
 });

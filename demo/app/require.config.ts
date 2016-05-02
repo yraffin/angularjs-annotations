@@ -1,6 +1,6 @@
 ﻿var requireConfig = {
     baseUrl: ".",
-    urlArgs: "b=" + Date.now().toString(),
+    urlArgs: "b=",
     paths: {
         "reflect-metadata": "vendors/reflect-metadata",
         "angular": "vendors/angular/angular.min",

@@ -20,6 +20,16 @@ import { HeroesComponent } from "app/heroes.component";
         name: "Heroes",
         path: "/heroes",
         component: HeroesComponent
+    },
+    // {
+    //     name: "HeroDetail",
+    //     path: "/detail/{id:int}",
+    //     component: HeroDetailComponent
+    // }
+    {
+        name: "HeroDetail",
+        path: "/detail/{id:int}",
+        loader: {path: "app/hero-detail.component", name: "HeroDetailComponent"}
     }
 ])
 class AppComponent {
