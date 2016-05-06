@@ -6,6 +6,7 @@ src/**/*.map
 demo/**/*.js
 demo/**/*.map
 demo/vendors
+demo/src
 node_modules
 bower_components
 typings

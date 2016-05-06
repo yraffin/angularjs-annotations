@@ -7,9 +7,9 @@ module.exports = {
                 livereload: true,
             },
         },
-        ts: {
+        ts_lib: {
             files: 'src/**/*.ts',
-            tasks: ['ts:dist', 'bowercopy:dist'],
+            tasks: ["ts:debug", "bowercopy:src_demo"],
             options: {
                 livereload: true,
             },

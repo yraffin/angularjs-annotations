@@ -7,13 +7,15 @@
         "angular-ui-router": "vendors/angular/angular-ui-router.min",
         "jquery": "vendors/jquery.min",
         "underscore": "vendors/underscore-min",
-        "angularjs-annotations": "vendors/angularjs-annotations"
+        "angularjs-annotations": "vendors/angularjs-annotations",
+        "ocLazyLoad": "vendors/ocLazyLoad"
     },
     shim: {
         "jquery": { "exports": "jquery" },
         "angular": { "exports": "angular", deps: ["jquery"] },
         "angular-ui-router": { deps: ["angular"] },
-        "angularjs-annotations": { deps: ["angular-ui-router", "underscore", "reflect-metadata"] },
+        "ocLazyLoad": { deps: ["angular"] },
+        "angularjs-annotations": { deps: ["angular-ui-router", "underscore", "reflect-metadata", "ocLazyLoad"] },
         "app/main": { deps: ["angularjs-annotations"] },
     }
 } as RequireConfig;

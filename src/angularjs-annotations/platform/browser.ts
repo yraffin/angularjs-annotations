@@ -668,7 +668,13 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     if (!componentMetadata) {
         throw new TypeError("Only module component can be bootstrapped");
     }
-
+    
+    // add oclazyload module
+    modules = modules || [];
+    if (modules.indexOf("oc.lazyLoad") == -1){
+        modules.unshift("oc.lazyLoad");
+    }
+    
     var name = componentMetadata.getInjectionName(component);
     var appModule = compileComponent(name, component, modules);
 

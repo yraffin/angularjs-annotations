@@ -31,5 +31,5 @@ module.exports = function (grunt) {
     grunt.registerTask("default", ["ts:dist"]);
     
     // launch demo
-    grunt.registerTask("demo", ["ts", "bowercopy", "connect:demo", "watch"]);
+    grunt.registerTask("demo", ["ts:debug", "ts:demo", "bowercopy:scripts", "bowercopy:src_demo", "connect:demo", "watch"]);
 };

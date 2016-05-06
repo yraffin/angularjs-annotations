@@ -316,8 +316,10 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
                 if (!metadata) {
                     throw new TypeError("This route object is not a component. Route: " + _this.loader.path);
                 }
-                browser_1.compile(component);
-                element.append(angular.element("<" + metadata.selector + "></" + metadata.selector + ">"));
+                var newModuleName = browser_1.compile(component).name;
+                _this._ocLazyLoad.load(newModuleName).then(function (data) {
+                    console.log(data);
+                });
             });
         };
         RequireLoader.prototype.load = function (name, path) {
@@ -335,6 +337,10 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
             decorators_2.Inject("$q"), 
             __metadata('design:type', Function)
         ], RequireLoader.prototype, "_q", void 0);
+        __decorate([
+            decorators_2.Inject("$ocLazyLoad"), 
+            __metadata('design:type', Object)
+        ], RequireLoader.prototype, "_ocLazyLoad", void 0);
         __decorate([
             decorators_2.Input(), 
             __metadata('design:type', Object)
@@ -758,6 +764,10 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         var componentMetadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_3.ComponentMetadata; });
         if (!componentMetadata) {
             throw new TypeError("Only module component can be bootstrapped");
+        }
+        modules = modules || [];
+        if (modules.indexOf("oc.lazyLoad") == -1) {
+            modules.unshift("oc.lazyLoad");
         }
         var name = componentMetadata.getInjectionName(component);
         var appModule = compileComponent(name, component, modules);

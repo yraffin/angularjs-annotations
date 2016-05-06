@@ -155,6 +155,7 @@ declare module "angularjs-annotations/router/directives/require.loader" {
     export class RequireLoader {
         private _compile;
         private _q;
+        private _ocLazyLoad;
         loader: {
             path: string;
             name: string;

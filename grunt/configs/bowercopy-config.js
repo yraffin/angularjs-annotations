@@ -14,16 +14,15 @@ module.exports = {
                 "angular/angular.min.js": "angular/angular.js",
                 "reflect-metadata.js": "reflect-metadata/Reflect.js",
                 "angular/angular-ui-router.min.js": "angular-ui-router/release/angular-ui-router.js",
+                "ocLazyLoad.js": "oclazyload/dist/ocLazyLoad.js"
             }
         },
-        dist:{
+        src_demo:{
             options:{
-                srcPrefix: "<%= distFolder %>",
-                destPrefix: "<%= demoFolder %>/vendors"
+                srcPrefix: "<%= srcFolder %>",
+                destPrefix: "<%= demoFolder %>/src"
             },
-            files: {
-                "angularjs-annotations.js": "angularjs-annotations.js"
-            }
+            src: "**/*.ts"
         }
     }
 }
