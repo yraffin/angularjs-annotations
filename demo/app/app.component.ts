@@ -1,16 +1,20 @@
 ﻿import { Component, Directive, Inject } from "angularjs-annotations/core";
 import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
 import { HeroesComponent } from "app/heroes.component";
+import { DashboardComponent } from "app/dashboard.component";
 
 
 @Component({
     selector: "my-app",
-    template: "<h1>My first angular annotations Application</h1>\
-        <h2>{{myApp.title}}</h2>\
-        <button class=\"md-raised md-primary\" ng-click=\"myApp.goToHeroes()\">click me</button>\
-        <br/> \
-        <router-outlet></router-outlet>\
-        ",
+    template: `<h1>My first angular annotations Application</h1>
+        <h2>{{myApp.title}}</h2>
+        <nav>
+            <a ui-sref="Dashboard">Dashboard</a>
+            <a ui-sref="Heroes">Heroes</a>
+        </nav>
+        <br/>
+        <router-outlet></router-outlet>
+        `,
     styleUrls: ["app/app.component.css"],
     directives: [ROUTER_DIRECTIVES],
     providers: [ROUTER_PROVIDERS]
@@ -21,11 +25,12 @@ import { HeroesComponent } from "app/heroes.component";
         path: "/heroes",
         component: HeroesComponent
     },
-    // {
-    //     name: "HeroDetail",
-    //     path: "/detail/{id:int}",
-    //     component: HeroDetailComponent
-    // }
+    {
+        name: "Dashboard",
+        path: "/dashboard",
+        component: DashboardComponent,
+        useAsDefault: true
+    },
     {
         name: "HeroDetail",
         path: "/detail/{id:int}",
@@ -34,13 +39,6 @@ import { HeroesComponent } from "app/heroes.component";
 ])
 class AppComponent {
     public title = "Tour of Heroes";
-
-    @Inject()
-    private _router: Router;
-
-    public goToHeroes() {
-        this._router.navigate("Heroes");
-    }
 }
 
 export {AppComponent};

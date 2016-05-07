@@ -553,7 +553,7 @@ export class ApplicationModule implements IModule {
                 // if one default state
                 let defaultRoute = _.find(this._routes, route => route.useAsDefault);
                 if (defaultRoute) {
-                    $urlRouterProvider.otherwise(defaultRoute.name);
+                    $urlRouterProvider.otherwise(defaultRoute.path);
                 }
 
                 _.each(this._routes, route => {

@@ -1,4 +1,5 @@
-﻿import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
+﻿import {Class} from "angularjs-annotations/core/types"
+import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 
 export class ServiceMetadata extends InjectableMetadata {
     constructor() {
@@ -21,5 +22,15 @@ export class ProviderMetadata extends InjectableMetadata {
 export class FilterMetadata extends InjectableMetadata {
     constructor() {
         super();
+    }
+}
+
+export class ConfigMetadata {
+    constructor(config: Class) {
+    }
+}
+
+export class RunMetadata {
+    constructor(config: Class) {
     }
 }
