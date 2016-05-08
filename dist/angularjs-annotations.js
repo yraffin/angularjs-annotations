@@ -177,6 +177,39 @@ define("angularjs-annotations/core/metadata/providers.metadata", ["require", "ex
     }(injectable_metadata_2.InjectableMetadata));
     exports.FilterMetadata = FilterMetadata;
 });
+define("angularjs-annotations/core/metadata/blocks.metadata", ["require", "exports"], function (require, exports) {
+    "use strict";
+    (function (BlockType) {
+        BlockType[BlockType["CONFIG"] = 0] = "CONFIG";
+        BlockType[BlockType["RUN"] = 1] = "RUN";
+    })(exports.BlockType || (exports.BlockType = {}));
+    var BlockType = exports.BlockType;
+    ;
+    var ConfigBlockMetadata = (function (_super) {
+        __extends(ConfigBlockMetadata, _super);
+        function ConfigBlockMetadata(configBlock) {
+            _super.call(this, BlockType.CONFIG, configBlock);
+        }
+        return ConfigBlockMetadata;
+    }(BlockMetadata));
+    exports.ConfigBlockMetadata = ConfigBlockMetadata;
+    var RunBlockMetadata = (function (_super) {
+        __extends(RunBlockMetadata, _super);
+        function RunBlockMetadata(runBlock) {
+            _super.call(this, BlockType.RUN, runBlock);
+        }
+        return RunBlockMetadata;
+    }(BlockMetadata));
+    exports.RunBlockMetadata = RunBlockMetadata;
+    var BlockMetadata = (function () {
+        function BlockMetadata(blockType, block) {
+            this.blockType = blockType;
+            this.block = block;
+        }
+        return BlockMetadata;
+    }());
+    exports.BlockMetadata = BlockMetadata;
+});
 define("angularjs-annotations/core/decorators.utils", ["require", "exports"], function (require, exports) {
     "use strict";
     exports.METADATA_KEY = "angularjs-annotations:metadata";
@@ -211,7 +244,7 @@ define("angularjs-annotations/core/decorators.utils", ["require", "exports"], fu
     }
     exports.setPropertyKey = setPropertyKey;
 });
-define("angularjs-annotations/core/decorators", ["require", "exports", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, directive_metadata_2, component_metadata_1, injection_metadata_1, input_metadata_1, providers_metadata_1, decorators_utils_1) {
+define("angularjs-annotations/core/decorators", ["require", "exports", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/metadata/blocks.metadata", "angularjs-annotations/core/decorators.utils"], function (require, exports, directive_metadata_2, component_metadata_1, injection_metadata_1, input_metadata_1, providers_metadata_1, blocks_metadata_1, decorators_utils_1) {
     "use strict";
     function Directive(options) {
         return decorators_utils_1.defineMetadata(new directive_metadata_2.DirectiveMetadata(options));
@@ -237,6 +270,14 @@ define("angularjs-annotations/core/decorators", ["require", "exports", "angularj
         return decorators_utils_1.defineMetadata(new providers_metadata_1.FilterMetadata());
     }
     exports.Filter = Filter;
+    function Config(options) {
+        return decorators_utils_1.defineMetadata(new blocks_metadata_1.ConfigBlockMetadata(options));
+    }
+    exports.Config = Config;
+    function Run(options) {
+        return decorators_utils_1.defineMetadata(new blocks_metadata_1.RunBlockMetadata(options));
+    }
+    exports.Run = Run;
     function Inject(name) {
         return function (target, targetKey) {
             var types = Reflect.getMetadata("design:type", target, targetKey);
@@ -310,22 +351,26 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
                     name: attributes["name"]
                 };
             }
-            this.load(this.loader.name, this.loader.path).then(function (component) {
+            this.load(this.loader.path, this.loader.name).then(function (component) {
                 var metadatas = Reflect.getMetadata(decorators_utils_2.METADATA_KEY, component);
                 var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
                 if (!metadata) {
                     throw new TypeError("This route object is not a component. Route: " + _this.loader.path);
                 }
                 var newModuleName = browser_1.compile(component).name;
-                _this._ocLazyLoad.load(newModuleName).then(function (data) {
-                    console.log(data);
+                _this._ocLazyLoad.inject(newModuleName).then(function (data) {
+                    var componentElement = angular.element("<" + metadata.selector + "></" + metadata.selector + ">");
+                    _this._compile(componentElement)(scope);
+                    element.replaceWith(componentElement);
+                }, function (reason) {
+                    console.log(reason);
                 });
             });
         };
-        RequireLoader.prototype.load = function (name, path) {
+        RequireLoader.prototype.load = function (path, name) {
             var defer = this._q.defer();
             require([path], function (component) {
-                defer.resolve(component[name]);
+                defer.resolve(name ? component[name] : component);
             });
             return defer.promise;
         };
@@ -347,7 +392,7 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
         ], RequireLoader.prototype, "loader", void 0);
         RequireLoader = __decorate([
             decorators_2.Directive({
-                selector: exports.REQUIRE_LOADER,
+                selector: exports.REQUIRE_LOADER
             }), 
             __metadata('design:paramtypes', [])
         ], RequireLoader);
@@ -392,7 +437,7 @@ define("angularjs-annotations/router/providers/router", ["require", "exports", "
     }());
     exports.Router = Router;
 });
-define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/core/metadata/providers.metadata"], function (require, exports, decorators_utils_3, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_3, input_metadata_2, route_config_metadata_1, require_loader_1, providers_metadata_2) {
+define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/injection.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/metadata/blocks.metadata"], function (require, exports, decorators_utils_3, injectable_metadata_3, injection_metadata_2, directive_metadata_3, component_metadata_3, input_metadata_2, route_config_metadata_1, require_loader_1, providers_metadata_2, blocks_metadata_2) {
     "use strict";
     var __Modules = {};
     var __BootstrapApplication__;
@@ -431,6 +476,7 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
                 providers[_i - 0] = arguments[_i];
             }
             _.each(providers, function (provider) {
+                _this.registerBlocks(provider);
                 if (_this.isDirective(provider)) {
                     _this.registerDirective(provider);
                     return;
@@ -480,6 +526,23 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             }
             _.filter(routeMetadata.data, function (routeDef) { return !!routeDef.component && _.isFunction(routeDef.component); }).forEach(function (routeDef) { return _this.add(routeDef.component); });
             this._routes = _.union(this._routes, routeMetadata.data);
+        };
+        ApplicationModule.prototype.registerBlocks = function (provider) {
+            var _this = this;
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
+            var blocks = _.filter(metadatas, function (metadata) { return metadata instanceof blocks_metadata_2.BlockMetadata; });
+            _.each(blocks, function (block) {
+                var annotatedFunc = _this.getInlineAnnotatedFunction(block.block);
+                if (block.blockType === blocks_metadata_2.BlockType.CONFIG) {
+                    _this.config(annotatedFunc);
+                }
+                else if (block.blockType === blocks_metadata_2.BlockType.RUN) {
+                    _this.run(annotatedFunc);
+                }
+                else {
+                    throw new TypeError("This block is not a config or run block");
+                }
+            });
         };
         ApplicationModule.prototype.registerDirective = function (provider) {
             var _this = this;
@@ -688,13 +751,21 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
             return _.any(metadatas, function (metadata) { return metadata instanceof providers_metadata_2.FilterMetadata; });
         };
+        ApplicationModule.prototype.isConfigBlock = function (provider) {
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
+            return _.any(metadatas, function (metadata) { return metadata instanceof blocks_metadata_2.ConfigBlockMetadata; });
+        };
+        ApplicationModule.prototype.isRunBlock = function (provider) {
+            var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, provider);
+            return _.any(metadatas, function (metadata) { return metadata instanceof blocks_metadata_2.RunBlockMetadata; });
+        };
         ApplicationModule.prototype.configureRouting = function () {
             var _this = this;
             this._module.config(["$stateProvider", "$urlRouterProvider",
                 function ($stateProvider, $urlRouterProvider) {
                     var defaultRoute = _.find(_this._routes, function (route) { return route.useAsDefault; });
                     if (defaultRoute) {
-                        $urlRouterProvider.otherwise(defaultRoute.name);
+                        $urlRouterProvider.otherwise(defaultRoute.path);
                     }
                     _.each(_this._routes, function (route) {
                         if (!route.component && route.loader) {
@@ -789,13 +860,28 @@ define("angularjs-annotations/router/decorators", ["require", "exports", "angula
     }
     exports.RouteConfig = RouteConfig;
 });
-define("angularjs-annotations/router/directives/router.outlet", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_4) {
+define("angularjs-annotations/router/directives/router.link", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_4) {
+    "use strict";
+    var RouterLink = (function () {
+        function RouterLink() {
+        }
+        RouterLink = __decorate([
+            decorators_4.Directive({
+                selector: "[routerLink]"
+            }), 
+            __metadata('design:paramtypes', [])
+        ], RouterLink);
+        return RouterLink;
+    }());
+    exports.RouterLink = RouterLink;
+});
+define("angularjs-annotations/router/directives/router.outlet", ["require", "exports", "angularjs-annotations/core/decorators"], function (require, exports, decorators_5) {
     "use strict";
     var RouterOutlet = (function () {
         function RouterOutlet() {
         }
         RouterOutlet = __decorate([
-            decorators_4.Directive({
+            decorators_5.Directive({
                 selector: "router-outlet",
                 template: "<div ui-view></div>",
             }), 
@@ -805,12 +891,12 @@ define("angularjs-annotations/router/directives/router.outlet", ["require", "exp
     }());
     exports.RouterOutlet = RouterOutlet;
 });
-define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_5, router_outlet_1, require_loader_2, router_1) {
+define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_6, router_outlet_1, require_loader_2, router_1) {
     "use strict";
     function __export(m) {
         for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
     }
-    __export(decorators_5);
+    __export(decorators_6);
     exports.Router = router_1.Router;
     exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet, require_loader_2.RequireLoader];
     exports.ROUTER_PROVIDERS = [router_1.Router];

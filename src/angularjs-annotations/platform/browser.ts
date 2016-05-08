@@ -9,6 +9,7 @@ import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/rout
 import {RequireLoader, REQUIRE_LOADER} from "angularjs-annotations/router/directives/require.loader"
 import {IRoute} from "angularjs-annotations/router/providers/router";
 import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
 
 export interface IModule {
@@ -71,12 +72,16 @@ export class ApplicationModule implements IModule {
      */
     add(...providers: Array<Class>): IModule {
         _.each(providers, (provider: Class) => {
-            // if provider is directive
+            // register module config/run blocks
+            this.registerBlocks(provider);
+            
+            // if provider is directive (or component)
             if (this.isDirective(provider)) {
                 this.registerDirective(provider);
                 return;
             }
 
+            // if privider is a service
             if (this.isService(provider)) {
                 this.registerService(provider);
             }
@@ -168,6 +173,26 @@ export class ApplicationModule implements IModule {
         _.filter(routeMetadata.data, routeDef => !!routeDef.component && _.isFunction(routeDef.component)).forEach(routeDef => this.add(routeDef.component));
 
         this._routes = _.union(this._routes, routeMetadata.data);
+    }
+    
+    /**
+     * Register an angular config/run block for a module.
+     * @method
+     * @param {Class} provider - The provider class.
+     */
+    private registerBlocks(provider: Class){
+        var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        var blocks = _.filter(metadatas, (metadata) => metadata instanceof BlockMetadata) as BlockMetadata[];
+        _.each(blocks, block => {
+            let annotatedFunc = this.getInlineAnnotatedFunction(block.block);
+            if (block.blockType === BlockType.CONFIG){
+                this.config(annotatedFunc as any);
+            } else if (block.blockType === BlockType.RUN){
+                this.run(annotatedFunc as any);
+            } else {
+                throw new TypeError("This block is not a config or run block");
+            }
+        })
     }
 
     /**
@@ -406,10 +431,12 @@ export class ApplicationModule implements IModule {
         // set the new contructor
         let annotatedFunc = function (...args) {
             let providerArguments = args.slice(injection.data.length);
-            let obj = ApplicationModule.construct(provider, providerArguments);
+            let dataInjections: _.Dictionary<any> = {};
             for (let index = 0; index < injection.data.length; index++) {
-                obj[injection.data[index].propertyName] = args[index];
+                dataInjections[injection.data[index].propertyName] = args[index];
             }
+            
+            let obj = ApplicationModule.construct(provider, providerArguments, dataInjections);
 
             return obj;
         }
@@ -427,8 +454,14 @@ export class ApplicationModule implements IModule {
      * @param constructor
      * @param arguments
      */
-    static construct(constructor, args) {
+    static construct(constructor:Function, args: Array<any>, dataInjections: _.Dictionary<any>) {
         let component: any = function () {
+            if (dataInjections){
+                _.each(dataInjections, (value, key) => {
+                    this[key] = value;
+                });
+            }
+            
             return constructor.apply(this, args);
         }
         component.prototype = constructor.prototype;
@@ -537,6 +570,28 @@ export class ApplicationModule implements IModule {
     private isFilter(provider: Class) {
         let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         return _.any(metadatas, (metadata) => metadata instanceof FilterMetadata);
+    }
+
+    /**
+     * Gets a value indicating whether provider function is angular config block.
+     * @method
+     * @param {Class} provider - Provider to add to register to angular module
+     * @return {boolean}
+     */
+    private isConfigBlock(provider: Class) {
+        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        return _.any(metadatas, (metadata) => metadata instanceof ConfigBlockMetadata);
+    }
+
+    /**
+     * Gets a value indicating whether provider function is angular run block.
+     * @method
+     * @param {Class} provider - Provider to add to register to angular module
+     * @return {boolean}
+     */
+    private isRunBlock(provider: Class) {
+        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        return _.any(metadatas, (metadata) => metadata instanceof RunBlockMetadata);
     }
 
     //#endregion

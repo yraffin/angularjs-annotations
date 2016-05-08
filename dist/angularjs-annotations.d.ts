@@ -100,6 +100,24 @@ declare module "angularjs-annotations/core/metadata/providers.metadata" {
         constructor();
     }
 }
+declare module "angularjs-annotations/core/metadata/blocks.metadata" {
+    import { Class } from "angularjs-annotations/core/types";
+    export enum BlockType {
+        CONFIG = 0,
+        RUN = 1,
+    }
+    export class ConfigBlockMetadata extends BlockMetadata {
+        constructor(configBlock: Class);
+    }
+    export class RunBlockMetadata extends BlockMetadata {
+        constructor(runBlock: Class);
+    }
+    export abstract class BlockMetadata {
+        blockType: BlockType;
+        block: Class;
+        constructor(blockType: BlockType, block: Class);
+    }
+}
 declare module "angularjs-annotations/core/decorators.utils" {
     import { Class } from "angularjs-annotations/core/types";
     export const METADATA_KEY: string;
@@ -119,6 +137,8 @@ declare module "angularjs-annotations/core/decorators" {
     export function Factory(): (target: Class) => void;
     export function Provider(): (target: Class) => void;
     export function Filter(): (target: Class) => void;
+    export function Config(options: Class): (target: Class) => void;
+    export function Run(options: Class): (target: Class) => void;
     export function Inject(name?: string): (target: Object, targetKey: string) => void;
     export function Input(name?: string): (target: Object, targetKey: string) => void;
 }
@@ -161,7 +181,7 @@ declare module "angularjs-annotations/router/directives/require.loader" {
             name: string;
         };
         link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
-        load(name: string, path: string): angular.IPromise<Class>;
+        load(path: string, name: string): angular.IPromise<Class>;
     }
 }
 declare module "angularjs-annotations/router/providers/router" {
@@ -204,6 +224,7 @@ declare module "angularjs-annotations/platform/browser" {
         private setAsRegistered(name);
         private isRegistered(name);
         private registerRoutes(provider);
+        private registerBlocks(provider);
         private registerDirective(provider);
         getDirectiveLinkFunction(provider: Class, metadata: DirectiveMetadata): Function;
         private getDirectiveRestriction(selector);
@@ -219,6 +240,8 @@ declare module "angularjs-annotations/platform/browser" {
         private isFactory(provider);
         private isProvider(provider);
         private isFilter(provider);
+        private isConfigBlock(provider);
+        private isRunBlock(provider);
         private configureRouting();
         private getTemplateProvider(route);
     }
@@ -229,6 +252,10 @@ declare module "angularjs-annotations/router/decorators" {
     import { IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
     import { Class } from "angularjs-annotations/core/types";
     export function RouteConfig(options: Array<IRouteDefinition>): (target: Class) => void;
+}
+declare module "angularjs-annotations/router/directives/router.link" {
+    export class RouterLink {
+    }
 }
 declare module "angularjs-annotations/router/directives/router.outlet" {
     class RouterOutlet {

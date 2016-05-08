@@ -24,13 +24,3 @@ export class FilterMetadata extends InjectableMetadata {
         super();
     }
 }
-
-export class ConfigMetadata {
-    constructor(config: Class) {
-    }
-}
-
-export class RunMetadata {
-    constructor(config: Class) {
-    }
-}

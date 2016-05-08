@@ -1,8 +1,8 @@
-﻿import { Component, Directive, Inject } from "angularjs-annotations/core";
+﻿import { Component, Directive, Inject, Config } from "angularjs-annotations/core";
 import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
 import { HeroesComponent } from "app/heroes.component";
 import { DashboardComponent } from "app/dashboard.component";
-
+import {AppConfig} from "app/app.component.config"
 
 @Component({
     selector: "my-app",
@@ -37,6 +37,7 @@ import { DashboardComponent } from "app/dashboard.component";
         loader: {path: "app/hero-detail.component", name: "HeroDetailComponent"}
     }
 ])
+@Config(AppConfig)
 class AppComponent {
     public title = "Tour of Heroes";
 }
