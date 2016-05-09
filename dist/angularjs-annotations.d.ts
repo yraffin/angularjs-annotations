@@ -99,6 +99,16 @@ declare module "angularjs-annotations/core/metadata/providers.metadata" {
     export class FilterMetadata extends InjectableMetadata {
         constructor();
     }
+    export class ValueMetadata extends InjectableMetadata {
+        name: string;
+        value: any;
+        constructor(name: string, value: any);
+    }
+    export class ConstantMetadata extends InjectableMetadata {
+        name: string;
+        value: any;
+        constructor(name: string, value: any);
+    }
 }
 declare module "angularjs-annotations/core/metadata/blocks.metadata" {
     import { Class } from "angularjs-annotations/core/types";
@@ -106,16 +116,16 @@ declare module "angularjs-annotations/core/metadata/blocks.metadata" {
         CONFIG = 0,
         RUN = 1,
     }
+    export class BlockMetadata {
+        blockType: BlockType;
+        block: Class;
+        constructor(blockType: BlockType, block: Class);
+    }
     export class ConfigBlockMetadata extends BlockMetadata {
         constructor(configBlock: Class);
     }
     export class RunBlockMetadata extends BlockMetadata {
         constructor(runBlock: Class);
-    }
-    export abstract class BlockMetadata {
-        blockType: BlockType;
-        block: Class;
-        constructor(blockType: BlockType, block: Class);
     }
 }
 declare module "angularjs-annotations/core/decorators.utils" {
@@ -139,6 +149,8 @@ declare module "angularjs-annotations/core/decorators" {
     export function Filter(): (target: Class) => void;
     export function Config(options: Class): (target: Class) => void;
     export function Run(options: Class): (target: Class) => void;
+    export function Value(name: string, value: any): (target: Class) => void;
+    export function Constant(name: string, value: any): (target: Class) => void;
     export function Inject(name?: string): (target: Object, targetKey: string) => void;
     export function Input(name?: string): (target: Object, targetKey: string) => void;
 }
@@ -151,6 +163,15 @@ declare module "angularjs-annotations/core" {
     export interface OnDestroy {
         ngOnDestroy(): void;
     }
+}
+declare module "angularjs-annotations/platform/browser.directive.utils" {
+    import { Class } from "angularjs-annotations/core/types";
+    import { DirectiveMetadata } from "angularjs-annotations/core/metadata/directive.metadata";
+    export const PROPERTIES_SYMBOLS: string[];
+    export function getDirectiveLinkFunction(provider: Class, metadata: DirectiveMetadata): Function;
+    export function getDirectiveRestriction(selector: string): string;
+    export function formatStyleTag(style: string, code: string, isUrl?: boolean): string;
+    export function getDirectiveScope(metadata: DirectiveMetadata): boolean | _.Dictionary<string>;
 }
 declare module "angularjs-annotations/router/metadata/route.config.metadata" {
     import { Class } from "angularjs-annotations/core/types";
@@ -181,7 +202,7 @@ declare module "angularjs-annotations/router/directives/require.loader" {
             name: string;
         };
         link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
-        load(path: string, name: string): angular.IPromise<Class>;
+        load(): angular.IPromise<Class>;
     }
 }
 declare module "angularjs-annotations/router/providers/router" {
@@ -198,8 +219,21 @@ declare module "angularjs-annotations/router/providers/router" {
         goBack(distance?: any): void;
     }
 }
+declare module "angularjs-annotations/platform/browser.utils" {
+    import { Class } from "angularjs-annotations/core/types";
+    export function getInlineAnnotatedFunction(provider: Class, isFactory?: boolean): Function | Array<any>;
+    export function construct(constructor: Function, args: Array<any>, dataInjections?: _.Dictionary<any>): any;
+    export function isUrl(text: string): boolean;
+    export function isDirective(provider: Class): boolean;
+    export function isComponent(provider: Class): boolean;
+    export function isService(provider: Class): boolean;
+    export function isFactory(provider: Class): boolean;
+    export function isProvider(provider: Class): boolean;
+    export function isFilter(provider: Class): boolean;
+    export function isConfigBlock(provider: Class): boolean;
+    export function isRunBlock(provider: Class): boolean;
+}
 declare module "angularjs-annotations/platform/browser" {
-    import { DirectiveMetadata } from "angularjs-annotations/core/metadata/directive.metadata";
     import { Class } from "angularjs-annotations/core/types";
     export interface IModule {
         name: string;
@@ -209,6 +243,7 @@ declare module "angularjs-annotations/platform/browser" {
         registerDependency: (componentModule: IModule) => void;
     }
     export const UI_ROUTER: string;
+    export const OC_LAZYLOAD: string;
     export class ApplicationModule implements IModule {
         name: string;
         private _routes;
@@ -225,25 +260,12 @@ declare module "angularjs-annotations/platform/browser" {
         private isRegistered(name);
         private registerRoutes(provider);
         private registerBlocks(provider);
+        private registerValues(provider);
+        private registerConstants(provider);
         private registerDirective(provider);
-        getDirectiveLinkFunction(provider: Class, metadata: DirectiveMetadata): Function;
-        private getDirectiveRestriction(selector);
         private registerService(provider);
         private registerFactory(provider);
-        private getInlineAnnotatedFunction(provider);
-        static construct(constructor: any, args: any): any;
-        private isUrl(text);
-        private formatStyleTag(style, code, isUrl?);
-        private isDirective(provider);
-        private isComponent(provider);
-        private isService(provider);
-        private isFactory(provider);
-        private isProvider(provider);
-        private isFilter(provider);
-        private isConfigBlock(provider);
-        private isRunBlock(provider);
         private configureRouting();
-        private getTemplateProvider(route);
     }
     export function compile(component: Class, modules?: Array<string | IModule>): IModule;
     export function bootstrap(component: Class, modules?: Array<string | IModule>): void;
@@ -255,6 +277,8 @@ declare module "angularjs-annotations/router/decorators" {
 }
 declare module "angularjs-annotations/router/directives/router.link" {
     export class RouterLink {
+        _link: any;
+        link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
     }
 }
 declare module "angularjs-annotations/router/directives/router.outlet" {
