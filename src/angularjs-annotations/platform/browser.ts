@@ -8,9 +8,11 @@ import {normalize, deNormalize} from "angularjs-annotations/core/core.utils"
 import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
 import {RequireLoader, REQUIRE_LOADER} from "angularjs-annotations/router/directives/require.loader"
 import {IRoute} from "angularjs-annotations/router/providers/router";
-import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
+import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isFactory, isFilter, isConfigBlock, isRunBlock, isProvider} from "angularjs-annotations/platform/browser.utils"
+import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope,PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
 
 export interface IModule {
     name: string;
@@ -28,6 +30,7 @@ const __Modules: _.Dictionary<angular.IModule> = {};
 var __BootstrapApplication__: IModule;
 
 export const UI_ROUTER = "ui.router";
+export const OC_LAZYLOAD = "oc.lazyLoad";
 
 /**
  * Application module class
@@ -75,15 +78,26 @@ export class ApplicationModule implements IModule {
             // register module config/run blocks
             this.registerBlocks(provider);
             
+            // register module value service
+            this.registerValues(provider);
+            
+            // register module value service
+            this.registerConstants(provider);
+            
             // if provider is directive (or component)
-            if (this.isDirective(provider)) {
+            if (isDirective(provider)) {
                 this.registerDirective(provider);
                 return;
             }
 
             // if privider is a service
-            if (this.isService(provider)) {
+            if (isService(provider)) {
                 this.registerService(provider);
+            }
+
+            // if privider is a service
+            if (isFactory(provider)) {
+                this.registerFactory(provider);
             }
         });
 
@@ -165,6 +179,10 @@ export class ApplicationModule implements IModule {
             this._module.requires.push(UI_ROUTER);
         }
 
+        if (this._module.requires.indexOf(OC_LAZYLOAD) === -1) {
+            this._module.requires.push(OC_LAZYLOAD);
+        }
+
         if (_.any(routeMetadata.data, (route) => _.any(this._routes, r => r.name === route.name))) {
             throw new Error("Route definition name should be unique");
         }
@@ -184,7 +202,7 @@ export class ApplicationModule implements IModule {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var blocks = _.filter(metadatas, (metadata) => metadata instanceof BlockMetadata) as BlockMetadata[];
         _.each(blocks, block => {
-            let annotatedFunc = this.getInlineAnnotatedFunction(block.block);
+            let annotatedFunc = getInlineAnnotatedFunction(block.block);
             if (block.blockType === BlockType.CONFIG){
                 this.config(annotatedFunc as any);
             } else if (block.blockType === BlockType.RUN){
@@ -193,6 +211,28 @@ export class ApplicationModule implements IModule {
                 throw new TypeError("This block is not a config or run block");
             }
         })
+    }
+    
+    /**
+     * Register an angular value service for a module.
+     * @method
+     * @param {Class} provider - The provider class.
+     */
+    private registerValues(provider: Class){
+        var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        var values = _.filter(metadatas, (metadata) => metadata instanceof ValueMetadata) as ValueMetadata[];
+        _.each(values, value => this._module.value(value.name, value.value));
+    }
+    
+    /**
+     * Register an angular constant service for a module.
+     * @method
+     * @param {Class} provider - The provider class.
+     */
+    private registerConstants(provider: Class){
+        var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        var constants = _.filter(metadatas, (metadata) => metadata instanceof ConstantMetadata) as ConstantMetadata[];
+        _.each(constants, constant => this._module.constant(constant.name, constant.value));
     }
 
     /**
@@ -217,22 +257,35 @@ export class ApplicationModule implements IModule {
             throw new Error("Directive selector should be define");
         }
 
-        if (this.isComponent(provider)) {
+        if (directiveMetadata instanceof ComponentMetadata) {
             this.registerRoutes(provider);
         }
         
         // if input defined => add to properties
         var inputMetadata = _.find(metadatas, (metadata) => metadata instanceof InputMetadata) as InputMetadata;
         if (inputMetadata && inputMetadata.data.length > 0){
-            directiveMetadata.properties = _.union(directiveMetadata.properties || [], _.map(inputMetadata.data, inputData => {                
-                return inputData.propertyName + ": =" + (inputData.inputName || "");
+            directiveMetadata.properties = _.union(directiveMetadata.properties || [], _.map(inputMetadata.data, inputData => {
+                if (inputData.inputName && PROPERTIES_SYMBOLS.indexOf(inputData.inputName.charAt(0)) === -1 ){
+                    // default input => = symbol
+                    return inputData.propertyName + ": =" + (inputData.inputName || "");
+                } else if (inputData.inputName){
+                    return inputData.propertyName + ": " + (inputData.inputName || "");                    
+                }
+                
+                return inputData.propertyName;
             }));
         }
 
         var directive: angular.IDirective = {};
-        directive.restrict = this.getDirectiveRestriction(directiveMetadata.selector.trim());
+        directive.restrict = getDirectiveRestriction(directiveMetadata.selector.trim());
         directive.controllerAs = directiveMetadata.exportAs || name;
 
+        // add scope
+        directive.scope = getDirectiveScope(directiveMetadata);
+        if (_.isObject(directive.scope)){
+            directive.bindToController = true;
+        }
+        
         // add template
         if (directiveMetadata.template) {
             directive.template = directiveMetadata.template;
@@ -243,7 +296,7 @@ export class ApplicationModule implements IModule {
         directive.replace = directiveMetadata.replace || false;
         
         // set link function
-        directive.link = this.getDirectiveLinkFunction(provider, directiveMetadata);
+        directive.link = getDirectiveLinkFunction(provider, directiveMetadata);
         
         // set compile function        
         if (provider["compile"]) {
@@ -251,7 +304,7 @@ export class ApplicationModule implements IModule {
         }
 
         // add controller as function or inlineAnnotatedFunction
-        directive.controller = this.getInlineAnnotatedFunction(provider);
+        directive.controller = getInlineAnnotatedFunction(provider);
 
         // set module directive
         this._module.directive(name, () => directive);
@@ -264,82 +317,6 @@ export class ApplicationModule implements IModule {
         }
 
         _.each(linkedClasses, linkedClass => this.add(linkedClass));
-    }
-    
-    /**
-     * Gets the directive link function.
-     */
-    getDirectiveLinkFunction(provider:Class, metadata: DirectiveMetadata): Function{
-        var controllerName = metadata.exportAs || metadata.getInjectionName(provider);
-        return (scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes, controllers?: any) => {
-            if (scope[controllerName] && _.isFunction(scope[controllerName].link)) {
-                scope[controllerName].link(scope, element, attributes, controllers);
-            }
-            
-            // manage css for components
-            scope["__styles__"] = {};
-            _.each((metadata["styles"] || []) as string[], (style, index) => {
-                let code = controllerName + "_style_" + index;
-                scope["__styles__"][code] = this.formatStyleTag(style, code);
-                
-                // add style to DOM
-                $(document).find("head").append(scope["__styles__"][code]);
-            });
-            _.each((metadata["styleUrls"] || []) as string[], (style, index) => {
-                let code = controllerName + "_style_" + index;
-                scope["__styles__"][code] = this.formatStyleTag(style, code, true);
-                
-                // add style to DOM
-                $(document).find("head").append(scope["__styles__"][code]);
-            });
-            
-            // TODO: manage scope on destroy et on init + css if on metadata
-            // Manage OnDestroy implementation
-            scope.$on('$destroy', () => {
-                // OnDestroy implementation
-                if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnDestroy)){
-                    scope[controllerName].ngOnDestroy();
-                }
-                
-                // Remove component css
-                _.each(scope["__styles__"], (value:string, key: string) => {
-                   $(document).find("head link[type='text/css'][data-code='" + key + "'],head style[type='text/css'][data-code='" + key + "']").remove();
-                });
-            });
-            
-            // Manage OnInit implementation
-            var to:number;
-            var listener = scope.$watch(() => {
-                clearTimeout(to);
-                to = setTimeout(() => {                    
-                    listener();
-                    
-                    // OnInit implementation
-                    if (scope[controllerName] && _.isFunction(scope[controllerName].ngOnInit) && !scope[controllerName].__ngIsInit__){
-                        scope[controllerName].ngOnInit();
-                        scope[controllerName].__ngIsInit__ = true;
-                    }
-                }, 50);
-            })
-        };
-    }
-
-    /**
-     * Get directive restrict property.
-     * @method
-     * @param {string} selector - The metadata selector value.
-     * @return {string} E, C ou A (Element, class or attribute)
-     */
-    private getDirectiveRestriction(selector: string): string {
-        if (selector.match(/\[[a-zA-Z0-9\-_]+\]/ig)) {
-            return "A";
-        }
-
-        if (selector.substr(0, 1) === ".") {
-            return "C";
-        }
-
-        return "E";
     }
 
     /**
@@ -361,7 +338,7 @@ export class ApplicationModule implements IModule {
         }
 
         // add inline annotated function to directive provider
-        var annotatedFunction = this.getInlineAnnotatedFunction(provider);
+        var annotatedFunction = getInlineAnnotatedFunction(provider);
 
         // set module directive
         this._module.service(name, annotatedFunction as any);
@@ -387,211 +364,11 @@ export class ApplicationModule implements IModule {
         }
 
         // add inline annotated function to directive provider
-        var annotatedFunction = this.getInlineAnnotatedFunction(provider);
+        var annotatedFunction = getInlineAnnotatedFunction(provider, true) as Array<any>;
 
         // set module directive
-        this._module.factory(name, () => annotatedFunction);
+        this._module.factory(name, annotatedFunction);
         this.setAsRegistered(name);
-    }
-
-    /**
-     * Gets the function or inline annotated function if injection.
-     * @method
-     * @param {Type} provider - the current function to inject.
-     * @return {Function|any[]}
-     */
-    private getInlineAnnotatedFunction(provider: Class): Function | Array<any> {
-        var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        var injection = _.find(metadatas, (metadata) => metadata instanceof InjectionMetadata) as InjectionMetadata;
-        if (!injection || _.isEmpty(injection.data)) {
-            return provider;
-        }
-
-        var result = [];
-        _.each(injection.data, (param: IInjectableProperty) => {
-            if (param.injectionName) {
-                result.push(param.injectionName);
-                return;
-            }
-
-            if (!param.propertyType) {
-                result.push(param.propertyName);
-                return;
-            }
-
-            let injectedTypeMetadata = _.find(Reflect.getMetadata(METADATA_KEY, param.propertyType) || [], (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
-            if (!injectedTypeMetadata) {
-                result.push(param.propertyName);
-                return;
-            }
-
-            result.push(injectedTypeMetadata.getInjectionName(param.propertyType));
-        });
-
-        // set the new contructor
-        let annotatedFunc = function (...args) {
-            let providerArguments = args.slice(injection.data.length);
-            let dataInjections: _.Dictionary<any> = {};
-            for (let index = 0; index < injection.data.length; index++) {
-                dataInjections[injection.data[index].propertyName] = args[index];
-            }
-            
-            let obj = ApplicationModule.construct(provider, providerArguments, dataInjections);
-
-            return obj;
-        }
-
-        // copy prototype so intanceof operator still works
-        annotatedFunc.prototype = provider.prototype;
-
-        result.push(annotatedFunc);
-
-        return result;
-    }
-
-    /**
-     * Utility function to generate instances of a class
-     * @param constructor
-     * @param arguments
-     */
-    static construct(constructor:Function, args: Array<any>, dataInjections: _.Dictionary<any>) {
-        let component: any = function () {
-            if (dataInjections){
-                _.each(dataInjections, (value, key) => {
-                    this[key] = value;
-                });
-            }
-            
-            return constructor.apply(this, args);
-        }
-        component.prototype = constructor.prototype;
-        return new component();
-    }
-
-    //#endregion
-
-    //#region ----- Utils -----
-    
-    /**
-     * Gets a value indicating whether text is a valid url.
-     * @method
-     * @param {string} text - Text to check.
-     * @return {boolean}
-     */
-    private isUrl(text: string): boolean{
-        var regexp = new RegExp('^(https?:\/\/)?'+ // protocol
-                    '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|'+ // domain name
-                    '((\d{1,3}\.){3}\d{1,3}))'+ // OR ip (v4) address
-                    '(\:\d+)?(\/[-a-z\d%_.~+]*)*'+ // port and path
-                    '(\?[;&a-z\d%_.~+=-]*)?'+ // query string
-                    '(\#[-a-z\d_]*)?$','i'); // fragment locater
-        return regexp.test(text);
-    }
-    
-    /**
-     * Format the corresposponding style tag to import in header.
-     * @method
-     * @param {string} style - The style text to import.
-     * @return {string}
-     */
-    private formatStyleTag(style: string, code: string, isUrl?: boolean): string {
-        if (isUrl){
-            return "<link rel=\"stylesheet\" type=\"text/css\" data-code=\"" + code + "\" href=\"" + style + "\" />"
-        }
-        
-        return "<style type=\"text/css\" data-code=\"" + code + "\">" + style + "</style>";
-    }
-
-    //#endregion
-
-    //#region ----- Metadata Utils -----
-
-    /**
-     * Gets a value indicating whether provider function is angular directive.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isDirective(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof DirectiveMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular component.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isComponent(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof ComponentMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular service.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isService(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof ServiceMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular factory.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isFactory(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof FactoryMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular Provider.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isProvider(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof ProviderMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular filter.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isFilter(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof FilterMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular config block.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isConfigBlock(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof ConfigBlockMetadata);
-    }
-
-    /**
-     * Gets a value indicating whether provider function is angular run block.
-     * @method
-     * @param {Class} provider - Provider to add to register to angular module
-     * @return {boolean}
-     */
-    private isRunBlock(provider: Class) {
-        let metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        return _.any(metadatas, (metadata) => metadata instanceof RunBlockMetadata);
     }
 
     //#endregion
@@ -616,9 +393,13 @@ export class ApplicationModule implements IModule {
                     if (!route.component && route.loader) {
                         $stateProvider.state({
                             url: route.path,
-                            template: "<" + REQUIRE_LOADER + " path=\"" + route.loader.path + "\" name=\"" + route.loader.name + "\"></" + REQUIRE_LOADER + ">",
+                            //template: "<" + REQUIRE_LOADER + " path=\"" + route.loader.path + "\" name=\"" + route.loader.name + "\"></" + REQUIRE_LOADER + ">",
+                            template: "<" + REQUIRE_LOADER + " loader=\"loader\"></" + REQUIRE_LOADER + ">",
                             name: route.name,
-                            $$routeDefinition: route
+                            $$routeDefinition: route,
+                            controller: ["$scope", ($scope) => {
+                                $scope.loader = route.loader;
+                            }]
                         } as IRoute);
                         return;
                     }
@@ -639,31 +420,6 @@ export class ApplicationModule implements IModule {
                     } as IRoute);
                 });
             }]);
-    }
-    
-    /**
-     * Gets the route template provider.
-     * @method
-     * @param {IRouteDefinition} route - The current route definition.
-     * @return {Function|Array<string|Function>}
-     */
-    private getTemplateProvider(route: IRouteDefinition): Function|Array<string|Function>{
-        if (!route.loader){
-            throw new Error("You have to specify a loader method");
-        }
-        
-        return ["$q", function($q){
-            return require([route.loader.path], exportedComponent => {
-                let component = route.loader.name ? exportedComponent[route.loader.name] : exportedComponent as Class;
-                let metadatas = Reflect.getMetadata(METADATA_KEY, component);
-                let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
-                if (!metadata) {
-                    throw new TypeError("This imported object is not a component. Path: " + route.loader.path + " ; Name: " + route.loader.name );
-                }
-                
-                return "<" + metadata.selector + "></" + metadata.selector + ">";
-            });
-        }];
     }
 
     //#endregion
@@ -722,12 +478,6 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     var componentMetadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
     if (!componentMetadata) {
         throw new TypeError("Only module component can be bootstrapped");
-    }
-    
-    // add oclazyload module
-    modules = modules || [];
-    if (modules.indexOf("oc.lazyLoad") == -1){
-        modules.unshift("oc.lazyLoad");
     }
     
     var name = componentMetadata.getInjectionName(component);

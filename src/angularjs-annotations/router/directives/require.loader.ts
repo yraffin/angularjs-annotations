@@ -21,13 +21,8 @@ export class RequireLoader{
     loader: {path: string; name: string;};
     
     link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes){
-        if (!this.loader){
-            this.loader = {
-                path: attributes["path"],
-                name: attributes["name"]
-            };
-        }
-        this.load(this.loader.path, this.loader.name).then(component => {
+        // load the component by its path and potential name.
+        this.load().then(component => {
             let metadatas = Reflect.getMetadata(METADATA_KEY, component);
             let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
             if (!metadata) {
@@ -40,16 +35,18 @@ export class RequireLoader{
                 let componentElement = angular.element("<" + metadata.selector + "></" + metadata.selector + ">");
                 this._compile(componentElement)(scope);
                 element.replaceWith(componentElement);
-            }, (reason) => {
-                console.log(reason);
             });
         })    
     }
     
-    load(path: string, name: string): angular.IPromise<Class> {
+    /**
+     * Load a component by its path and name with requirejs.
+     * @method
+     */
+    load(): angular.IPromise<Class> {
         var defer = this._q.defer();
-        require([path], (component:any) => {
-            defer.resolve(name ? component[name] : component);
+        require([this.loader.path], (component:any) => {
+            defer.resolve(this.loader.name ? component[this.loader.name] : component);
         });
         
         return defer.promise;

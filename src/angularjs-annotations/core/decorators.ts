@@ -2,7 +2,7 @@
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
 import {InjectionMetadata, IInjectableProperty} from "angularjs-annotations/core/metadata/injection.metadata";
 import {InputMetadata, IInputProperty} from "angularjs-annotations/core/metadata/input.metadata";
-import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
 import {METADATA_KEY, defineMetadata, setPropertyKey} from "angularjs-annotations/core/decorators.utils"
@@ -37,6 +37,14 @@ export function Config(options: Class): (target: Class) => void {
 
 export function Run(options: Class): (target: Class) => void {
     return defineMetadata(new RunBlockMetadata(options));
+}
+
+export function Value(name: string, value: any): (target: Class) => void {
+    return defineMetadata(new ValueMetadata(name, value));
+}
+
+export function Constant(name: string, value: any): (target: Class) => void {
+    return defineMetadata(new ConstantMetadata(name, value));
 }
 
 export function Inject(name?: string): (target: Object, targetKey: string) => void {

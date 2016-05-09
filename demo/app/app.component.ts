@@ -3,6 +3,7 @@ import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angula
 import { HeroesComponent } from "app/heroes.component";
 import { DashboardComponent } from "app/dashboard.component";
 import {AppConfig} from "app/app.component.config"
+import {AuthorizationInterceptor} from "app/app.http.interceptor"
 
 @Component({
     selector: "my-app",
@@ -13,11 +14,11 @@ import {AppConfig} from "app/app.component.config"
             <a ui-sref="Heroes">Heroes</a>
         </nav>
         <br/>
-        <router-outlet></router-outlet>
+        <div ui-view></div>
         `,
     styleUrls: ["app/app.component.css"],
     directives: [ROUTER_DIRECTIVES],
-    providers: [ROUTER_PROVIDERS]
+    providers: [ROUTER_PROVIDERS, AuthorizationInterceptor]
 })
 @RouteConfig([
     {

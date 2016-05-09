@@ -24,3 +24,15 @@ export class FilterMetadata extends InjectableMetadata {
         super();
     }
 }
+
+export class ValueMetadata extends InjectableMetadata {
+    constructor(public name: string, public value: any) {
+        super();
+    }
+}
+
+export class ConstantMetadata extends InjectableMetadata {
+    constructor(public name: string, public value: any) {
+        super();
+    }
+}
