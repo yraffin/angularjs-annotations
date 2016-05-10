@@ -144,57 +144,64 @@ define("angularjs-annotations/core/metadata/input.metadata", ["require", "export
 });
 define("angularjs-annotations/core/metadata/providers.metadata", ["require", "exports", "angularjs-annotations/core/metadata/injectable.metadata"], function (require, exports, injectable_metadata_2) {
     "use strict";
+    var ProviderBaseMetadata = (function (_super) {
+        __extends(ProviderBaseMetadata, _super);
+        function ProviderBaseMetadata(name) {
+            _super.call(this);
+            this.name = name;
+        }
+        return ProviderBaseMetadata;
+    }(injectable_metadata_2.InjectableMetadata));
+    exports.ProviderBaseMetadata = ProviderBaseMetadata;
     var ServiceMetadata = (function (_super) {
         __extends(ServiceMetadata, _super);
-        function ServiceMetadata() {
-            _super.call(this);
+        function ServiceMetadata(name) {
+            _super.call(this, name);
         }
         return ServiceMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.ServiceMetadata = ServiceMetadata;
     var FactoryMetadata = (function (_super) {
         __extends(FactoryMetadata, _super);
-        function FactoryMetadata() {
-            _super.call(this);
+        function FactoryMetadata(name) {
+            _super.call(this, name);
         }
         return FactoryMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.FactoryMetadata = FactoryMetadata;
     var ProviderMetadata = (function (_super) {
         __extends(ProviderMetadata, _super);
-        function ProviderMetadata() {
-            _super.call(this);
+        function ProviderMetadata(name) {
+            _super.call(this, name);
         }
         return ProviderMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.ProviderMetadata = ProviderMetadata;
     var FilterMetadata = (function (_super) {
         __extends(FilterMetadata, _super);
-        function FilterMetadata() {
-            _super.call(this);
+        function FilterMetadata(name) {
+            _super.call(this, name);
         }
         return FilterMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.FilterMetadata = FilterMetadata;
     var ValueMetadata = (function (_super) {
         __extends(ValueMetadata, _super);
         function ValueMetadata(name, value) {
-            _super.call(this);
-            this.name = name;
+            _super.call(this, name);
             this.value = value;
         }
         return ValueMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.ValueMetadata = ValueMetadata;
     var ConstantMetadata = (function (_super) {
         __extends(ConstantMetadata, _super);
         function ConstantMetadata(name, value) {
-            _super.call(this);
-            this.name = name;
+            _super.call(this, name);
             this.value = value;
         }
         return ConstantMetadata;
-    }(injectable_metadata_2.InjectableMetadata));
+    }(ProviderBaseMetadata));
     exports.ConstantMetadata = ConstantMetadata;
 });
 define("angularjs-annotations/core/metadata/blocks.metadata", ["require", "exports"], function (require, exports) {
@@ -274,20 +281,20 @@ define("angularjs-annotations/core/decorators", ["require", "exports", "angularj
         return decorators_utils_1.defineMetadata(new component_metadata_1.ComponentMetadata(options));
     }
     exports.Component = Component;
-    function Service() {
-        return decorators_utils_1.defineMetadata(new providers_metadata_1.ServiceMetadata());
+    function Service(name) {
+        return decorators_utils_1.defineMetadata(new providers_metadata_1.ServiceMetadata(name));
     }
     exports.Service = Service;
-    function Factory() {
-        return decorators_utils_1.defineMetadata(new providers_metadata_1.FactoryMetadata());
+    function Factory(name) {
+        return decorators_utils_1.defineMetadata(new providers_metadata_1.FactoryMetadata(name));
     }
     exports.Factory = Factory;
-    function Provider() {
-        return decorators_utils_1.defineMetadata(new providers_metadata_1.ProviderMetadata());
+    function Provider(name) {
+        return decorators_utils_1.defineMetadata(new providers_metadata_1.ProviderMetadata(name));
     }
     exports.Provider = Provider;
-    function Filter() {
-        return decorators_utils_1.defineMetadata(new providers_metadata_1.FilterMetadata());
+    function Filter(name) {
+        return decorators_utils_1.defineMetadata(new providers_metadata_1.FilterMetadata(name));
     }
     exports.Filter = Filter;
     function Config(options) {

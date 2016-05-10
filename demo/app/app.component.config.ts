@@ -1,4 +1,5 @@
 import { Component, Inject, OnInit } from "angularjs-annotations/core";
+import {HTTP_INTERCEPTOR} from "app/http.interceptor"
 
 export class AppConfig {
     @Inject("$ocLazyLoadProvider")
@@ -6,6 +7,9 @@ export class AppConfig {
     
     @Inject("$httpProvider")
     private _httpProvider: angular.IHttpProvider;
+
+    @Inject()
+    private $locationProvider: angular.ILocationProvider;
     
     constructor(){
         this.initialize();
@@ -17,6 +21,7 @@ export class AppConfig {
             events: true
         });
         
-        this._httpProvider.interceptors.push("AuthorizationInterceptor");
+        this.$locationProvider.html5Mode(true);
+        this._httpProvider.interceptors.push(HTTP_INTERCEPTOR);
     }
 }

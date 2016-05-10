@@ -12,14 +12,16 @@ module.exports = {
                 base: [
                   '<%= demoFolder %>'
                 ],
-                // middleware: function (connect, options) {
-                //     var middlewares = [];
-                //     middlewares.push(modRewrite(['^[^\\.]*$ /index.html [L]'])); //Matches everything that does not contain a '.' (period)
-                //     options.base.forEach(function (base) {
-                //         middlewares.push(connect.static(base));
-                //     });
-                //     return middlewares;
-                // }
+                middleware: function (connect, options) {
+                    var middlewares = [];
+                    var modRewrite = require('connect-modrewrite');
+                    var serveStatic = require('serve-static');
+                    middlewares.push(modRewrite(['^[^\\.]*$ /index.html [L]'])); //Matches everything that does not contain a '.' (period)
+                    options.base.forEach(function (base) {
+                        middlewares.push(serveStatic(base));
+                    });
+                    return middlewares;
+                }
             }
         },
     }

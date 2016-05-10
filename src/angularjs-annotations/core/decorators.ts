@@ -15,20 +15,20 @@ export function Component(options: IComponentMetadata): (target: Class) => void 
     return defineMetadata(new ComponentMetadata(options));
 }
 
-export function Service(): (target: Class) => void {
-    return defineMetadata(new ServiceMetadata());
+export function Service(name?: string): (target: Class) => void {
+    return defineMetadata(new ServiceMetadata(name));
 }
 
-export function Factory(): (target: Class) => void {
-    return defineMetadata(new FactoryMetadata());
+export function Factory(name?: string): (target: Class) => void {
+    return defineMetadata(new FactoryMetadata(name));
 }
 
-export function Provider(): (target: Class) => void {
-    return defineMetadata(new ProviderMetadata());
+export function Provider(name?: string): (target: Class) => void {
+    return defineMetadata(new ProviderMetadata(name));
 }
 
-export function Filter(): (target: Class) => void {
-    return defineMetadata(new FilterMetadata());
+export function Filter(name?: string): (target: Class) => void {
+    return defineMetadata(new FilterMetadata(name));
 }
 
 export function Config(options: Class): (target: Class) => void {

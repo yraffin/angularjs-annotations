@@ -1,38 +1,45 @@
 ﻿import {Class} from "angularjs-annotations/core/types"
 import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 
-export class ServiceMetadata extends InjectableMetadata {
-    constructor() {
+
+export class ProviderBaseMetadata extends InjectableMetadata {
+    constructor(public name?: string) {
         super();
     }
 }
 
-export class FactoryMetadata extends InjectableMetadata {
-    constructor() {
-        super();
+export class ServiceMetadata extends ProviderBaseMetadata {
+    constructor(name?: string) {
+        super(name);
     }
 }
 
-export class ProviderMetadata extends InjectableMetadata {
-    constructor() {
-        super();
+export class FactoryMetadata extends ProviderBaseMetadata {
+    constructor(name?: string) {
+        super(name);
     }
 }
 
-export class FilterMetadata extends InjectableMetadata {
-    constructor() {
-        super();
+export class ProviderMetadata extends ProviderBaseMetadata {
+    constructor(name?: string) {
+        super(name);
     }
 }
 
-export class ValueMetadata extends InjectableMetadata {
-    constructor(public name: string, public value: any) {
-        super();
+export class FilterMetadata extends ProviderBaseMetadata {
+    constructor(name?: string) {
+        super(name);
     }
 }
 
-export class ConstantMetadata extends InjectableMetadata {
-    constructor(public name: string, public value: any) {
-        super();
+export class ValueMetadata extends ProviderBaseMetadata {
+    constructor(name: string, public value: any) {
+        super(name);
+    }
+}
+
+export class ConstantMetadata extends ProviderBaseMetadata {
+    constructor(name: string, public value: any) {
+        super(name);
     }
 }

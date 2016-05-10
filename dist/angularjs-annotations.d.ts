@@ -87,25 +87,27 @@ declare module "angularjs-annotations/core/metadata/input.metadata" {
 }
 declare module "angularjs-annotations/core/metadata/providers.metadata" {
     import { InjectableMetadata } from "angularjs-annotations/core/metadata/injectable.metadata";
-    export class ServiceMetadata extends InjectableMetadata {
-        constructor();
-    }
-    export class FactoryMetadata extends InjectableMetadata {
-        constructor();
-    }
-    export class ProviderMetadata extends InjectableMetadata {
-        constructor();
-    }
-    export class FilterMetadata extends InjectableMetadata {
-        constructor();
-    }
-    export class ValueMetadata extends InjectableMetadata {
+    export class ProviderBaseMetadata extends InjectableMetadata {
         name: string;
+        constructor(name?: string);
+    }
+    export class ServiceMetadata extends ProviderBaseMetadata {
+        constructor(name?: string);
+    }
+    export class FactoryMetadata extends ProviderBaseMetadata {
+        constructor(name?: string);
+    }
+    export class ProviderMetadata extends ProviderBaseMetadata {
+        constructor(name?: string);
+    }
+    export class FilterMetadata extends ProviderBaseMetadata {
+        constructor(name?: string);
+    }
+    export class ValueMetadata extends ProviderBaseMetadata {
         value: any;
         constructor(name: string, value: any);
     }
-    export class ConstantMetadata extends InjectableMetadata {
-        name: string;
+    export class ConstantMetadata extends ProviderBaseMetadata {
         value: any;
         constructor(name: string, value: any);
     }
@@ -143,10 +145,10 @@ declare module "angularjs-annotations/core/decorators" {
     import { Class } from "angularjs-annotations/core/types";
     export function Directive(options: IDirectiveMetadata): (target: Class) => void;
     export function Component(options: IComponentMetadata): (target: Class) => void;
-    export function Service(): (target: Class) => void;
-    export function Factory(): (target: Class) => void;
-    export function Provider(): (target: Class) => void;
-    export function Filter(): (target: Class) => void;
+    export function Service(name?: string): (target: Class) => void;
+    export function Factory(name?: string): (target: Class) => void;
+    export function Provider(name?: string): (target: Class) => void;
+    export function Filter(name?: string): (target: Class) => void;
     export function Config(options: Class): (target: Class) => void;
     export function Run(options: Class): (target: Class) => void;
     export function Value(name: string, value: any): (target: Class) => void;

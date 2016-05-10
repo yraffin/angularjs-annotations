@@ -3,7 +3,7 @@ import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angula
 import { HeroesComponent } from "app/heroes.component";
 import { DashboardComponent } from "app/dashboard.component";
 import {AppConfig} from "app/app.component.config"
-import {AuthorizationInterceptor} from "app/app.http.interceptor"
+import {HttpInterceptor} from "app/http.interceptor"
 
 @Component({
     selector: "my-app",
@@ -18,8 +18,9 @@ import {AuthorizationInterceptor} from "app/app.http.interceptor"
         `,
     styleUrls: ["app/app.component.css"],
     directives: [ROUTER_DIRECTIVES],
-    providers: [ROUTER_PROVIDERS, AuthorizationInterceptor]
+    providers: [ROUTER_PROVIDERS, HttpInterceptor]
 })
+@Config(AppConfig)
 @RouteConfig([
     {
         name: "Heroes",
@@ -38,7 +39,6 @@ import {AuthorizationInterceptor} from "app/app.http.interceptor"
         loader: {path: "app/hero-detail.component", name: "HeroDetailComponent"}
     }
 ])
-@Config(AppConfig)
 class AppComponent {
     public title = "Tour of Heroes";
 }

@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/yraffin/angularjs-annotations",
   "devDependencies": {
+    "connect-modrewrite": "^0.9.0",
     "glob": "^7.0.3",
     "grunt": "^1.0.1",
     "grunt-bowercopy": "^1.2.4",
@@ -31,6 +32,7 @@
     "grunt-contrib-watch": "^1.0.0",
     "grunt-ts": "^5.5.0-beta.2",
     "matchdep": "^1.0.1",
-    "require": "^2.4.20"
+    "require": "^2.4.20",
+    "serve-static": "^1.10.2"
   }
 }
