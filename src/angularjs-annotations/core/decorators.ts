@@ -1,6 +1,7 @@
 ﻿import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
 import {InjectionMetadata, IInjectableProperty} from "angularjs-annotations/core/metadata/injection.metadata";
+import {InjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 import {InputMetadata, IInputProperty} from "angularjs-annotations/core/metadata/input.metadata";
 import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata} from "angularjs-annotations/core/metadata/blocks.metadata"
@@ -13,6 +14,10 @@ export function Directive(options: IDirectiveMetadata): (target: Class) => void 
 
 export function Component(options: IComponentMetadata): (target: Class) => void {
     return defineMetadata(new ComponentMetadata(options));
+}
+
+export function Injectable(): (target: Class) => void {
+    return defineMetadata(new InjectableMetadata());
 }
 
 export function Service(name?: string): (target: Class) => void {

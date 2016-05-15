@@ -132,6 +132,17 @@ export function isComponent(provider: Class) {
 }
 
 /**
+ * Gets a value indicating whether provider function is angular injectable.
+ * @method
+ * @param {Class} provider - Provider to add to register to angular module
+ * @return {boolean}
+ */
+export function isInjectable(provider: Class) {
+    var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+    return _.any(metadatas, (metadata) => metadata instanceof InjectableMetadata);
+}
+
+/**
  * Gets a value indicating whether provider function is angular service.
  * @method
  * @param {Class} provider - Provider to add to register to angular module

@@ -1,4 +1,4 @@
-﻿import { Service, Inject } from "angularjs-annotations/core";
+﻿import { Injectable, Inject } from "angularjs-annotations/core";
 
 class Hero {
     id: number;
@@ -18,7 +18,7 @@ const HEROES: Hero[] = [
     { 'id': 20, 'name': 'Tornado' }
 ];
 
-@Service()
+@Injectable()
 class HeroService {
 
     @Inject("$q")

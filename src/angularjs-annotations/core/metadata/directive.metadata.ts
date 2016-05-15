@@ -1,5 +1,6 @@
 ﻿import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 import {Class} from "angularjs-annotations/core/types"
+import {Provider} from "angularjs-annotations/core/provider"
 
 export interface IDirectiveMetadata {
     selector: string;
@@ -7,7 +8,7 @@ export interface IDirectiveMetadata {
     templateUrl?: string | ((element: angular.IAugmentedJQuery, attributes: angular.IAttributes) => string);
     exportAs?: string;
     events?: string[];
-    providers?: Array<Class | Class[]>;
+    providers?: Array<Class | Provider | Array<Class | Provider>>;
     properties?: Array<string>;
     replace?: boolean;
 }
@@ -18,7 +19,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
     public templateUrl: string | ((element: angular.IAugmentedJQuery, attributes: angular.IAttributes) => string);
     public exportAs: string;
     public events: string[];
-    public providers: Array<Class | Class[]>;
+    public providers: Array<Class | Provider | Array<Class | Provider>>;
     public properties: Array<string>;
     public replace: boolean;
 
@@ -38,7 +39,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
      * Gets an array of linked Class to register with directive.
      * @return {Class[]}
      */
-    getLinkedClasses(): Class[] {
+    getLinkedClasses(): Array<Class|Provider> {
         return this.getLinkedClassesFromSource(this.providers);
     }
 
@@ -46,8 +47,8 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
      * Gets an array of linked Class to register with directive.
      * @return {Class[]}
      */
-    getLinkedClassesFromSource(source: Array<any>): Class[] {
-        var result = _.filter(source || [], provider => _.isFunction(provider)) || [] as Class[];
+    getLinkedClassesFromSource(source: Array<any>): Array<Class|Provider> {
+        var result = _.filter(source || [], provider => provider instanceof Provider || _.isFunction(provider)) || [] as Array<Class|Provider>;
         _.filter(source || [], provider => _.isArray(provider)).forEach(providerList => {
             result = _.union(result, this.getLinkedClassesFromSource(providerList));
         });

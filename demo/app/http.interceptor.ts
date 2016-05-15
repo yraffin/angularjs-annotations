@@ -1,8 +1,8 @@
-import { Factory, Inject } from "angularjs-annotations/core";
+import { Injectable, Inject } from "angularjs-annotations/core";
 
 export const HTTP_INTERCEPTOR = "HttpInterceptorFactory";
 
-@Factory(HTTP_INTERCEPTOR)
+@Injectable()
 export class HttpInterceptor {
     @Inject("$q")
     private _q: angular.IQService;

@@ -8,7 +8,7 @@ export interface IInjectableMetadata {
     getClassName: () => string;
 }
 
-export class InjectableMetadata implements IInjectableMetadata {
+export class InjectableMetadata implements IInjectableMetadata {    
     /**
      * Get current class injection name.
      * @method

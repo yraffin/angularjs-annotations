@@ -1,7 +1,6 @@
 ﻿import {Class} from "angularjs-annotations/core/types"
 import {InjectableMetadata, IInjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 
-
 export class ProviderBaseMetadata extends InjectableMetadata {
     constructor(public name?: string) {
         super();

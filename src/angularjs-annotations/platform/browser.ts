@@ -11,7 +11,8 @@ import {IRoute} from "angularjs-annotations/router/providers/router";
 import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
-import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isFactory, isFilter, isConfigBlock, isRunBlock, isProvider} from "angularjs-annotations/platform/browser.utils"
+import {Provider} from "angularjs-annotations/core/provider"
+import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isInjectable, isFactory, isFilter, isConfigBlock, isRunBlock, isProvider} from "angularjs-annotations/platform/browser.utils"
 import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope,PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
 
 export interface IModule {
@@ -73,31 +74,37 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Type[]} providers
      */
-    add(...providers: Array<Class>): IModule {
-        _.each(providers, (provider: Class) => {
+    add(...providers: Array<Class|Provider>): IModule {
+        _.each(providers, (provider: Class|Provider) => {
+            // if provider => build provider
+            if (provider instanceof Provider){
+                this.buildProvider(provider as Provider);
+                return this;
+            }
+            
             // register module config/run blocks
-            this.registerBlocks(provider);
+            this.registerBlocks(provider as Class);
             
             // register module value service
-            this.registerValues(provider);
+            this.registerValuesClass(provider as Class);
             
             // register module value service
-            this.registerConstants(provider);
+            this.registerConstantsClass(provider as Class);
             
             // if provider is directive (or component)
-            if (isDirective(provider)) {
-                this.registerDirective(provider);
-                return;
+            if (isDirective(provider as Class)) {
+                this.registerDirective(provider as Class);
+                return this;
             }
 
             // if privider is a service
-            if (isService(provider)) {
-                this.registerService(provider);
+            if (isFactory(provider as Class)) {
+                this.registerFactoryClass(provider as Class);
             }
 
-            // if privider is a service
-            if (isFactory(provider)) {
-                this.registerFactory(provider);
+            // if privider is a injectable
+            if (isInjectable(provider as Class)) {
+                this.registerServiceClass(provider as Class);
             }
         });
 
@@ -144,6 +151,49 @@ export class ApplicationModule implements IModule {
     //#endregion
 
     //#region ----- Module registration Methods ----
+    
+    /**
+     * Build a provider into the angular module.
+     * @method
+     * @param provider {Provider} The provider to build.
+     */
+    private buildProvider(provider: Provider){
+        // register service
+        if (provider.injectable.useClass){
+            let metadatas = Reflect.getMetadata(METADATA_KEY, provider.injectable.useClass);
+            let injectableMetadata = _.find(metadatas, (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
+            if (!injectableMetadata){
+                throw new TypeError("Service should be Injectable");
+            }
+            
+            this.registerService(provider.injectorKey, provider.injectable.useClass);
+            return;
+        }
+        
+        // register factory
+        if (provider.injectable.useFactory){
+            let metadatas = Reflect.getMetadata(METADATA_KEY, provider.injectable.useFactory);
+            let injectableMetadata = _.find(metadatas, (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
+            if (!injectableMetadata){
+                throw new TypeError("Factory function not yet implemented. Factory should be Injectable.");
+            }
+            
+            this.registerFactory(provider.injectorKey, provider.injectable.useFactory as Class);
+            return;
+        }
+        
+        // register value
+        if (provider.injectable.useValue){
+            this.registerValue(provider.injectorKey, provider.injectable.useValue);
+            return;
+        }
+        
+        // register constant
+        if (provider.injectable.useConstant){
+            this.registerConstant(provider.injectorKey, provider.injectable.useConstant);
+            return;
+        }
+    }
 
     /**
      * Set a provider as registered class in module.
@@ -218,10 +268,20 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Class} provider - The provider class.
      */
-    private registerValues(provider: Class){
+    private registerValuesClass(provider: Class){
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var values = _.filter(metadatas, (metadata) => metadata instanceof ValueMetadata) as ValueMetadata[];
-        _.each(values, value => this._module.value(value.name, value.value));
+        _.each(values, value => this.registerValue(value.name, value.value));
+    }
+    
+    /**
+     * Register an angular value service for a module.
+     * @method
+     * @param {string} name - The value injectable name.
+     * @param {any} value - The injectable value.
+     */
+    private registerValue(name: string, value: any){
+        this._module.value(name, value);
     }
     
     /**
@@ -229,10 +289,20 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Class} provider - The provider class.
      */
-    private registerConstants(provider: Class){
+    private registerConstantsClass(provider: Class){
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var constants = _.filter(metadatas, (metadata) => metadata instanceof ConstantMetadata) as ConstantMetadata[];
-        _.each(constants, constant => this._module.constant(constant.name, constant.value));
+        _.each(constants, constant => this.registerConstant(constant.name, constant.value));
+    }
+    
+    /**
+     * Register an angular constant service for a module.
+     * @method
+     * @param {string} name - The constant injectable name.
+     * @param {any} value - The constant value.
+     */
+    private registerConstant(name: string, value: any){
+        this._module.constant(name, value);
     }
 
     /**
@@ -324,21 +394,30 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Class} provider - The provider to register in angular module.
      */
-    private registerService(provider: Class) {
+    private registerServiceClass(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-        var serviceMetadata = _.find(metadatas, (metadata) => metadata instanceof ServiceMetadata) as ServiceMetadata;
+        var serviceMetadata = _.find(metadatas, (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
         if (!serviceMetadata) {
             return;
         }
 
         var name = serviceMetadata.getInjectionName(provider);
-        if (this.isRegistered(name)) {
+        this.registerService(name, provider);
+    }
+
+    /**
+     * Register an angular service.
+     * @method
+     * @param {Class} provider - The provider to register in angular module.
+     */
+    private registerService(name: string, injectable: Class) {
+        if (this.isRegistered(name) || !injectable) {
             // TODO: check if registration is same type or else throw error
             return;
         }
 
         // add inline annotated function to directive provider
-        var annotatedFunction = getInlineAnnotatedFunction(provider);
+        var annotatedFunction = getInlineAnnotatedFunction(injectable);
 
         // set module directive
         this._module.service(name, annotatedFunction as any);
@@ -350,7 +429,7 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Class} provider - The provider to register in angular module.
      */
-    private registerFactory(provider: Class) {
+    private registerFactoryClass(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var factoryMetadata = _.find(metadatas, (metadata) => metadata instanceof FactoryMetadata) as FactoryMetadata;
         if (!factoryMetadata) {
@@ -358,13 +437,22 @@ export class ApplicationModule implements IModule {
         }
 
         var name = factoryMetadata.getInjectionName(provider);
-        if (this.isRegistered(name)) {
+        this.registerFactory(name, provider);
+    }
+
+    /**
+     * Register an angular factory.
+     * @method
+     * @param {Class} provider - The provider to register in angular module.
+     */
+    private registerFactory(name: string, injectable: Class) {
+        if (this.isRegistered(name) || !injectable) {
             // TODO: check if registration is same type or else throw error
             return;
         }
 
         // add inline annotated function to directive provider
-        var annotatedFunction = getInlineAnnotatedFunction(provider, true) as Array<any>;
+        var annotatedFunction = getInlineAnnotatedFunction(injectable, true) as Array<any>;
 
         // set module directive
         this._module.factory(name, annotatedFunction);

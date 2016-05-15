@@ -1,9 +1,9 @@
-﻿import { Component, Directive, Inject, Config } from "angularjs-annotations/core";
+﻿import { Component, Directive, Inject, Config, provide } from "angularjs-annotations/core";
 import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
 import { HeroesComponent } from "app/heroes.component";
 import { DashboardComponent } from "app/dashboard.component";
 import {AppConfig} from "app/app.component.config"
-import {HttpInterceptor} from "app/http.interceptor"
+import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
 
 @Component({
     selector: "my-app",
@@ -18,7 +18,7 @@ import {HttpInterceptor} from "app/http.interceptor"
         `,
     styleUrls: ["app/app.component.css"],
     directives: [ROUTER_DIRECTIVES],
-    providers: [ROUTER_PROVIDERS, HttpInterceptor]
+    providers: [ROUTER_PROVIDERS, provide(HTTP_INTERCEPTOR, {useFactory: HttpInterceptor})]
 })
 @Config(AppConfig)
 @RouteConfig([

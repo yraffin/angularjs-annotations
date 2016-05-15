@@ -1,5 +1,6 @@
 ﻿import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {Class} from "angularjs-annotations/core/types"
+import {Provider} from "angularjs-annotations/core/provider"
 
 export interface IComponentMetadata extends IDirectiveMetadata {
     directives?: Array<Class | Class[]>;
@@ -27,7 +28,7 @@ export class ComponentMetadata extends DirectiveMetadata implements IComponentMe
      * Gets an array of linked Class to register with component.
      * @return {Class[]}
      */
-    getLinkedClasses(): Class[] {
+    getLinkedClasses(): Array<Class|Provider> {
         var providers = super.getLinkedClasses();
         var directives = this.getLinkedClassesFromSource(this.directives);
         return _.union(providers, directives);
