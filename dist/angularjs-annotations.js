@@ -642,7 +642,14 @@ define("angularjs-annotations/platform/browser.utils", ["require", "exports", "a
                 args[_i - 0] = arguments[_i];
             }
             if (isPipe) {
-                return construct(annotatedFunc, args).transform;
+                var filter = construct(annotatedFunc, args);
+                return function () {
+                    var filterArgs = [];
+                    for (var _i = 0; _i < arguments.length; _i++) {
+                        filterArgs[_i - 0] = arguments[_i];
+                    }
+                    return filter.transform.apply(filter, filterArgs);
+                };
             }
             return construct(annotatedFunc, args);
         };

@@ -2,7 +2,7 @@
 <div class="grid grid-pad">
   <div ng-repeat="hero in myDashboard.heroes" ng-click="myDashboard.gotoDetail(hero)" class="col-1-4">
     <div class="module hero">
-      <h4>{{hero.name}}</h4>
+      <h4>{{hero.name | upperCase:'first'}}</h4>
     </div>
   </div>
 </div>

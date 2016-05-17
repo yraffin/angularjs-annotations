@@ -68,7 +68,8 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false, i
     // set the factory constructor
     var factory = function(...args: any[]){
         if (isPipe){
-            return construct(annotatedFunc, args).transform;
+            var filter = construct(annotatedFunc, args); 
+            return (...filterArgs) => filter.transform.apply(filter, filterArgs);
         }
         
         return construct(annotatedFunc, args);
