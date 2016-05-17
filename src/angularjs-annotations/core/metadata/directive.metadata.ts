@@ -10,6 +10,7 @@ export interface IDirectiveMetadata {
     events?: string[];
     providers?: Array<Class | Provider | Array<Class | Provider>>;
     properties?: Array<string>;
+    pipes?: Array<Class>;
     replace?: boolean;
 }
 
@@ -21,6 +22,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
     public events: string[];
     public providers: Array<Class | Provider | Array<Class | Provider>>;
     public properties: Array<string>;
+    public pipes: Array<Class>;
     public replace: boolean;
 
     constructor(data: IDirectiveMetadata) {
@@ -33,6 +35,7 @@ export class DirectiveMetadata extends InjectableMetadata implements IDirectiveM
         this.providers = data.providers;
         this.properties = data.properties;
         this.replace = data.replace;
+        this.pipes = data.pipes || [];
     }
 
     /**

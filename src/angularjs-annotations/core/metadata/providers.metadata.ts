@@ -19,18 +19,6 @@ export class FactoryMetadata extends ProviderBaseMetadata {
     }
 }
 
-export class ProviderMetadata extends ProviderBaseMetadata {
-    constructor(name?: string) {
-        super(name);
-    }
-}
-
-export class FilterMetadata extends ProviderBaseMetadata {
-    constructor(name?: string) {
-        super(name);
-    }
-}
-
 export class ValueMetadata extends ProviderBaseMetadata {
     constructor(name: string, public value: any) {
         super(name);

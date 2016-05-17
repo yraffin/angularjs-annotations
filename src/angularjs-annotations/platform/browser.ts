@@ -8,11 +8,12 @@ import {normalize, deNormalize} from "angularjs-annotations/core/core.utils"
 import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
 import {RequireLoader, REQUIRE_LOADER} from "angularjs-annotations/router/directives/require.loader"
 import {IRoute} from "angularjs-annotations/router/providers/router";
-import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {IPipeMetadata, PipeMetadata, PipeTransform} from "angularjs-annotations/core/metadata/pipe.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
 import {Provider} from "angularjs-annotations/core/provider"
-import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isInjectable, isFactory, isFilter, isConfigBlock, isRunBlock, isProvider} from "angularjs-annotations/platform/browser.utils"
+import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isInjectable, isFactory, isConfigBlock, isRunBlock} from "angularjs-annotations/platform/browser.utils"
 import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope,PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
 
 export interface IModule {
@@ -379,6 +380,9 @@ export class ApplicationModule implements IModule {
         // set module directive
         this._module.directive(name, () => directive);
         this.setAsRegistered(name);
+        
+        // register pipes
+        _.each(directiveMetadata.pipes || [], pipe => this.registerPipe(pipe));
 
         // register linked directives and providers
         var linkedClasses = directiveMetadata.getLinkedClasses();
@@ -387,6 +391,32 @@ export class ApplicationModule implements IModule {
         }
 
         _.each(linkedClasses, linkedClass => this.add(linkedClass));
+    }
+    
+    /**
+     * Register an angular filter.
+     * @method
+     * @param {Class} provider - The provider to register in angular module.
+     */
+    private registerPipe(provider:Class){
+        var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
+        var pipeMetadata = _.find(metadatas, (metadata) => metadata instanceof PipeMetadata) as PipeMetadata;
+        if (!pipeMetadata) {
+            return;
+        }
+
+        var name = pipeMetadata.name;
+        if (this.isRegistered(name)) {
+            // TODO: check if registration is same type or else throw error
+            return;
+        }
+        
+        // add inline annotated function to directive provider
+        var annotatedFunction = getInlineAnnotatedFunction(provider, true, true) as Array<any>;
+
+        // set module directive
+        this._module.filter(name, annotatedFunction);
+        this.setAsRegistered(name);
     }
 
     /**

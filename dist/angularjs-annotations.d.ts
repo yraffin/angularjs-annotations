@@ -59,6 +59,7 @@ declare module "angularjs-annotations/core/metadata/directive.metadata" {
         events?: string[];
         providers?: Array<Class | Provider | Array<Class | Provider>>;
         properties?: Array<string>;
+        pipes?: Array<Class>;
         replace?: boolean;
     }
     export class DirectiveMetadata extends InjectableMetadata implements IDirectiveMetadata, IInjectableMetadata {
@@ -69,6 +70,7 @@ declare module "angularjs-annotations/core/metadata/directive.metadata" {
         events: string[];
         providers: Array<Class | Provider | Array<Class | Provider>>;
         properties: Array<string>;
+        pipes: Array<Class>;
         replace: boolean;
         constructor(data: IDirectiveMetadata);
         getLinkedClasses(): Array<Class | Provider>;
@@ -124,12 +126,6 @@ declare module "angularjs-annotations/core/metadata/providers.metadata" {
     export class FactoryMetadata extends ProviderBaseMetadata {
         constructor(name?: string);
     }
-    export class ProviderMetadata extends ProviderBaseMetadata {
-        constructor(name?: string);
-    }
-    export class FilterMetadata extends ProviderBaseMetadata {
-        constructor(name?: string);
-    }
     export class ValueMetadata extends ProviderBaseMetadata {
         value: any;
         constructor(name: string, value: any);
@@ -137,6 +133,21 @@ declare module "angularjs-annotations/core/metadata/providers.metadata" {
     export class ConstantMetadata extends ProviderBaseMetadata {
         value: any;
         constructor(name: string, value: any);
+    }
+}
+declare module "angularjs-annotations/core/metadata/pipe.metadata" {
+    import { InjectableMetadata } from "angularjs-annotations/core/metadata/injectable.metadata";
+    export interface IPipeMetadata {
+        name: string;
+        pure?: boolean;
+    }
+    export class PipeMetadata extends InjectableMetadata implements IPipeMetadata {
+        name: string;
+        pure: boolean;
+        constructor(options: IPipeMetadata);
+    }
+    export interface PipeTransform {
+        transform: (value: any, ...args: any[]) => any;
     }
 }
 declare module "angularjs-annotations/core/metadata/blocks.metadata" {
@@ -160,14 +171,15 @@ declare module "angularjs-annotations/core/metadata/blocks.metadata" {
 declare module "angularjs-annotations/core/decorators" {
     import { IDirectiveMetadata } from "angularjs-annotations/core/metadata/directive.metadata";
     import { IComponentMetadata } from "angularjs-annotations/core/metadata/component.metadata";
+    import { IPipeMetadata } from "angularjs-annotations/core/metadata/pipe.metadata";
     import { Class } from "angularjs-annotations/core/types";
     export function Directive(options: IDirectiveMetadata): (target: Class) => void;
     export function Component(options: IComponentMetadata): (target: Class) => void;
     export function Injectable(): (target: Class) => void;
     export function Service(name?: string): (target: Class) => void;
     export function Factory(name?: string): (target: Class) => void;
-    export function Provider(name?: string): (target: Class) => void;
-    export function Filter(name?: string): (target: Class) => void;
+    export { PipeTransform } from "angularjs-annotations/core/metadata/pipe.metadata";
+    export function Pipe(options: IPipeMetadata): (target: Class) => void;
     export function Config(options: Class): (target: Class) => void;
     export function Run(options: Class): (target: Class) => void;
     export function Value(name: string, value: any): (target: Class) => void;
@@ -243,7 +255,7 @@ declare module "angularjs-annotations/router/providers/router" {
 }
 declare module "angularjs-annotations/platform/browser.utils" {
     import { Class } from "angularjs-annotations/core/types";
-    export function getInlineAnnotatedFunction(provider: Class, isFactory?: boolean): Function | Array<any>;
+    export function getInlineAnnotatedFunction(provider: Class, isFactory?: boolean, isPipe?: boolean): Function | Array<any>;
     export function construct(constructor: Function, args: Array<any>, dataInjections?: _.Dictionary<any>): any;
     export function isUrl(text: string): boolean;
     export function isDirective(provider: Class): boolean;
@@ -251,8 +263,7 @@ declare module "angularjs-annotations/platform/browser.utils" {
     export function isInjectable(provider: Class): boolean;
     export function isService(provider: Class): boolean;
     export function isFactory(provider: Class): boolean;
-    export function isProvider(provider: Class): boolean;
-    export function isFilter(provider: Class): boolean;
+    export function isPipe(provider: Class): boolean;
     export function isConfigBlock(provider: Class): boolean;
     export function isRunBlock(provider: Class): boolean;
 }
@@ -290,6 +301,7 @@ declare module "angularjs-annotations/platform/browser" {
         private registerConstantsClass(provider);
         private registerConstant(name, value);
         private registerDirective(provider);
+        private registerPipe(provider);
         private registerServiceClass(provider);
         private registerService(name, injectable);
         private registerFactoryClass(provider);

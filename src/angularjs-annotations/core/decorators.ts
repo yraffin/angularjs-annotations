@@ -3,7 +3,8 @@ import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/
 import {InjectionMetadata, IInjectableProperty} from "angularjs-annotations/core/metadata/injection.metadata";
 import {InjectableMetadata} from "angularjs-annotations/core/metadata/injectable.metadata";
 import {InputMetadata, IInputProperty} from "angularjs-annotations/core/metadata/input.metadata";
-import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {IPipeMetadata, PipeMetadata} from "angularjs-annotations/core/metadata/pipe.metadata"
 import {ConfigBlockMetadata, RunBlockMetadata} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
 import {METADATA_KEY, defineMetadata, setPropertyKey} from "angularjs-annotations/core/decorators.utils"
@@ -28,12 +29,9 @@ export function Factory(name?: string): (target: Class) => void {
     return defineMetadata(new FactoryMetadata(name));
 }
 
-export function Provider(name?: string): (target: Class) => void {
-    return defineMetadata(new ProviderMetadata(name));
-}
-
-export function Filter(name?: string): (target: Class) => void {
-    return defineMetadata(new FilterMetadata(name));
+export {PipeTransform} from "angularjs-annotations/core/metadata/pipe.metadata"
+export function Pipe(options: IPipeMetadata): (target: Class) => void {
+    return defineMetadata(new PipeMetadata(options));
 }
 
 export function Config(options: Class): (target: Class) => void {

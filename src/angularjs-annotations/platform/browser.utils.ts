@@ -5,16 +5,18 @@ import { InjectableMetadata } from "angularjs-annotations/core/metadata/injectab
 import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
 import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
-import {ServiceMetadata, FactoryMetadata, ProviderMetadata, FilterMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
+import {PipeMetadata} from 'angularjs-annotations/core/metadata/pipe.metadata'
 
 /**
  * Gets the function or inline annotated function if injection.
  * @method
  * @param {Type} provider - the current function to inject.
  * @param {boolean} isFactory - Value indicating whether we get inline annotated factory function.
+ * @param {boolean} isPipe - Value indicating whether we get inline annotated factory function for pipe filter.
  * @return {Function|any[]}
  */
-export function getInlineAnnotatedFunction(provider: Class, isFactory = false): Function | Array<any> {
+export function getInlineAnnotatedFunction(provider: Class, isFactory = false, isPipe = false): Function | Array<any> {
     var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
     var injection = _.find(metadatas, (metadata) => metadata instanceof InjectionMetadata) as InjectionMetadata;
     if (!injection || _.isEmpty(injection.data)) {
@@ -65,6 +67,10 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false): 
     
     // set the factory constructor
     var factory = function(...args: any[]){
+        if (isPipe){
+            return construct(annotatedFunc, args).transform;
+        }
+        
         return construct(annotatedFunc, args);
     }
 
@@ -165,25 +171,14 @@ export function isFactory(provider: Class) {
 }
 
 /**
- * Gets a value indicating whether provider function is angular Provider.
- * @method
- * @param {Class} provider - Provider to add to register to angular module
- * @return {boolean}
- */
-export function isProvider(provider: Class) {
-    var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-    return _.any(metadatas, (metadata) => metadata instanceof ProviderMetadata);
-}
-
-/**
  * Gets a value indicating whether provider function is angular filter.
  * @method
  * @param {Class} provider - Provider to add to register to angular module
  * @return {boolean}
  */
-export function isFilter(provider: Class) {
+export function isPipe(provider: Class) {
     var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
-    return _.any(metadatas, (metadata) => metadata instanceof FilterMetadata);
+    return _.any(metadatas, (metadata) => metadata instanceof PipeMetadata);
 }
 
 /**

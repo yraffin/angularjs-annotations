@@ -5,6 +5,7 @@ import { DashboardComponent } from "app/dashboard.component";
 import {AppConfig} from "app/app.component.config"
 import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
 import {SecurityService} from "app/security.service"
+import {UpperCasePipe} from "app/uppercase.pipe"
 
 @Component({
     selector: "my-app",
@@ -25,7 +26,8 @@ import {SecurityService} from "app/security.service"
         ROUTER_PROVIDERS, 
         provide(HTTP_INTERCEPTOR, {useFactory: HttpInterceptor}),
         provide(SecurityService, { useFactory: SecurityService })
-    ]
+    ],
+    pipes: [UpperCasePipe]
 })
 @Config(AppConfig)
 @RouteConfig([
