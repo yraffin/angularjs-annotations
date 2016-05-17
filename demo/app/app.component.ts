@@ -4,6 +4,7 @@ import { HeroesComponent } from "app/heroes.component";
 import { DashboardComponent } from "app/dashboard.component";
 import {AppConfig} from "app/app.component.config"
 import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
+import {SecurityService} from "app/security.service"
 
 @Component({
     selector: "my-app",
@@ -12,13 +13,19 @@ import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
         <nav>
             <a ui-sref="Dashboard">Dashboard</a>
             <a ui-sref="Heroes">Heroes</a>
+            <a ui-sref="/" ng-if="!myApp.securityService.isAuthorized">Login</a>
+            <a ui-sref="/" ng-if="myApp.securityService.isAuthorized">Logout</a>
         </nav>
         <br/>
         <div ui-view></div>
         `,
     styleUrls: ["app/app.component.css"],
     directives: [ROUTER_DIRECTIVES],
-    providers: [ROUTER_PROVIDERS, provide(HTTP_INTERCEPTOR, {useFactory: HttpInterceptor})]
+    providers: [
+        ROUTER_PROVIDERS, 
+        provide(HTTP_INTERCEPTOR, {useFactory: HttpInterceptor}),
+        provide(SecurityService, { useFactory: SecurityService })
+    ]
 })
 @Config(AppConfig)
 @RouteConfig([
@@ -41,6 +48,9 @@ import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
 ])
 class AppComponent {
     public title = "Tour of Heroes";
+
+    @Inject()
+    public securityService: SecurityService;
 }
 
 export {AppComponent};

@@ -18,7 +18,7 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false): 
     var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
     var injection = _.find(metadatas, (metadata) => metadata instanceof InjectionMetadata) as InjectionMetadata;
     if (!injection || _.isEmpty(injection.data)) {
-        return provider;
+        injection = { data: [] };
     }
 
     var result = [];

@@ -37,7 +37,7 @@ export class Provider {
                 throw new TypeError("Provider key should be a string or Injectable class");
             }
             
-            this.injectorKey = injectableMetadata.getInjectionName();
+            this.injectorKey = injectableMetadata.getInjectionName(providerKey as Class);
         } else {
             this.injectorKey = providerKey;
         }
