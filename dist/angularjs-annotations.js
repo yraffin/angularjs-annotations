@@ -123,7 +123,7 @@ define("angularjs-annotations/core/provider", ["require", "exports", "angularjs-
                 if (!injectableMetadata) {
                     throw new TypeError("Provider key should be a string or Injectable class");
                 }
-                this.injectorKey = injectableMetadata.getInjectionName();
+                this.injectorKey = injectableMetadata.getInjectionName(providerKey);
             }
             else {
                 this.injectorKey = providerKey;
@@ -601,7 +601,7 @@ define("angularjs-annotations/platform/browser.utils", ["require", "exports", "a
         var metadatas = Reflect.getMetadata(decorators_utils_4.METADATA_KEY, provider);
         var injection = _.find(metadatas, function (metadata) { return metadata instanceof injection_metadata_2.InjectionMetadata; });
         if (!injection || _.isEmpty(injection.data)) {
-            return provider;
+            injection = { data: [] };
         }
         var result = [];
         _.each(injection.data, function (param) {
