@@ -263,7 +263,7 @@ define("angularjs-annotations/core/metadata/pipe.metadata", ["require", "exports
         __extends(PipeMetadata, _super);
         function PipeMetadata(options) {
             _super.call(this);
-            if (_.isEmpty(name)) {
+            if (!options || _.isEmpty(options.name)) {
                 throw new TypeError("Pipe metadata should have a name defined.");
             }
             this.name = options.name;
