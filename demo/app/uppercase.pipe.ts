@@ -5,7 +5,7 @@ export class UpperCasePipe implements PipeTransform{
     @Inject("$http")
     private _http: angular.IHttpService;
     
-    transform(value: string, toto:any) {
+    transform(value: string) {
         return this.upperCaseValue(value);
     }
     

@@ -14,8 +14,8 @@ import {UpperCasePipe} from "app/uppercase.pipe"
         <nav>
             <a ui-sref="Dashboard">Dashboard</a>
             <a ui-sref="Heroes">Heroes</a>
-            <a ui-sref="/" ng-if="!myApp.securityService.isAuthorized">Login</a>
-            <a ui-sref="/" ng-if="myApp.securityService.isAuthorized">Logout</a>
+            <a ng-if="!myApp.securityService.isAuthorized" ng-click="myApp.securityService.login()">Login</a>
+            <a ng-if="myApp.securityService.isAuthorized" ng-click="myApp.securityService.logout()">Logout</a>
         </nav>
         <br/>
         <div ui-view></div>
@@ -24,7 +24,7 @@ import {UpperCasePipe} from "app/uppercase.pipe"
     directives: [ROUTER_DIRECTIVES],
     providers: [
         ROUTER_PROVIDERS, 
-        provide(HTTP_INTERCEPTOR, {useFactory: HttpInterceptor}),
+        provide(HTTP_INTERCEPTOR, { useFactory: HttpInterceptor }),
         provide(SecurityService, { useFactory: SecurityService })
     ],
     pipes: [UpperCasePipe]
@@ -52,7 +52,7 @@ class AppComponent {
     public title = "Tour of Heroes";
 
     @Inject()
-    public securityService: SecurityService;
+    securityService: SecurityService;
 }
 
 export {AppComponent};
