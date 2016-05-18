@@ -17,9 +17,9 @@ I decided to build this librairie for those who are still working on AngularJS a
 While developing the library I kept in mind the need to be able to upgrade without too much effort to Angular 2.
 
 ## Requirements
- - AngularJS v1.3 or heigher.
+ - AngularJS v1.3 or higher.
  - Angular-ui-router for routing in angular app and state management.
- - Typescript v1.7 or heigher.
+ - Typescript v1.7 or higher.
  - Reflect-Metadata : allow us to convert typescript decorators into metadata and annotations.
  - Underscore.
  - Requirejs : for typescript AMD module compilation.

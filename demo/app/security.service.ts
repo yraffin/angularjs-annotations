@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "angularjs-annotations/core";
+import {Injectable} from "angularjs-annotations/core";
 
 @Injectable()
 export class SecurityService {
