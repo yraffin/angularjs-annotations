@@ -65,7 +65,7 @@ bower install oclazyload
 
 If you want to try the demo, start by cloning the repository. The demo is based on [Angular 2 Tour of Heroes](https://github.com/johnpapa/angular2-tour-of-heroes).
 
-You can find the demo runing over [Plunker](https://embed.plnkr.co/r1tVRe/). This is the javascript compile code.
+You can find the demo runing over [Plunker](http://plnkr.co/edit/r1tVRe?p=preview). This is the javascript compile code.
 
 ```sh
 # install angularjs
