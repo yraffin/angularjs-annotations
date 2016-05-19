@@ -1,12 +1,17 @@
 ﻿import {Class} from "angularjs-annotations/core/types"
 
+export interface IAsyncLoader{
+    path: string;
+    name?: string;
+    deps?: Array<string>
+}
+
 export interface IRouteDefinition {
     path: string;
     name: string;
     component?: Class;
     useAsDefault?: boolean;
-    //loader?: angular.IPromise<Class>;
-    loader?:{path: string, name?: string};
+    loader?: IAsyncLoader;
 }
 
 

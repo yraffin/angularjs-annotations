@@ -115,6 +115,16 @@ import {AppComponent} from "app/app.component"
 bootstrap(AppComponent);
 ```
 
+If you want to specify other angularjs module dependencies, you can add the dependencies in the bootstrap method
+
+```typescript
+import {bootstrap} from "angularjs-annotations/platform/browser"
+
+import {AppComponent} from "app/app.component"
+
+bootstrap(AppComponent, ["ngResource", "ngCookies"]);
+```
+
 ##### Configure you html file to use your component:
 
 RequireJS Config (File ./app/require.config.ts):
@@ -179,7 +189,9 @@ Index.html (File ./index.html)
 
 In order to create a component, use the `@Component` decorator from `angularjs-annotations/core`. The component metadata is an object containing a least "selector" string property. This property will defined the DOM element associated to our component.
 
-##### Component metadata Parameters:
+While using `OnInit` implementation from `angularjs-annotations/core`, you will be able to execute initialization code when component is loaded and not just when its created (use the constructor class for this.)
+
+##### Component metadata Properties:
 
 - **`selector`**  **string (required)**  The component DOM element selector. It should be a CSS tag selector.
 - **`template`**  **string|Function**  The component HTML template string (or function returning the template HTML code).
@@ -190,6 +202,7 @@ In order to create a component, use the `@Component` decorator from `angularjs-a
 - **`directives`**  **Array&lt;Class|Class[]&gt;** A List of `Directive` class to use in the component template.
 - **`pipes`**  **Array&lt;Class|Class[]&gt;** A List of `Pipe` class to use in the component template.
 - **`providers`**  **Array&lt;Class|Provider|Array&lt;Class|Provider&gt;&gt;** A List of `Providers` to use and inject in the component.
+- **`properties`**  **Array&lt;string&gt;**  A list of attributes properties to link with this component.
 
 ##### Exemple:
 
@@ -229,7 +242,7 @@ You might need to add custom directives in your component template. You will hav
 
 A directive can be create the same way you create a component, by using `@Directive` decorator from `angularjs-annotations/core`.
 
-##### Directive metadata Parameters:
+##### Directive metadata Properties:
 
 - **`selector`**  **string (required)**  The component DOM element selector. It should be a CSS attribute selector like `[my-attr]`.
 - **`template`**  **string|Function**  The component HTML template string (or function returning the template HTML code).
@@ -237,6 +250,7 @@ A directive can be create the same way you create a component, by using `@Direct
 - **`exportAs`**  **string**  The component alias (to use like `contollerAs` in angularJS template). If not defined, we use a normalized name from the component class selector: "my-app" selector => "myApp" `export as` name.
 - **`pipes`**  **Array&lt;Class|Class[]&gt;** A List of `Pipe` class to use in the component template.
 - **`providers`**  **Array&lt;Class|Provider|Array&lt;Class|Provider&gt;&gt;** A List of `Providers` to use and inject in the component.
+- **`properties`**  **Array&lt;string&gt;**  A list of attributes properties to link with this directive.
 
 ##### Exemple:
 
@@ -260,6 +274,63 @@ class RouterOutlet {
     directives: [RouterOutlet]
 })
 export class AppComponent { }
+```
+
+
+`properties` array will allow you to define 3 kind of isolated scope binding properties :
+
+- *text attribute* by using '`@`'.
+- *value expression* by using '`=`'.
+- *action expression* by using '`&amp;`'.
+
+You can also use `@Input(name?: string)` decorator on class properties to define a *value expression* binding properties ('=').
+
+##### Exemple:
+
+```typescript
+
+import {Directive, Component, Input} from "angularjs-annotations/core"
+
+@Directive({
+    selector: "my-directive",
+    template: "<div></div>",
+    properties: [
+        "param3", // same as "param3: =param3"
+        "myText: @param4",
+        "myAction: &action",
+    ]
+})
+class MyDirective {
+    @Input()
+    param1: any;
+
+    @Input("param2")
+    myParam2: any;
+
+    param3: any;
+    myText: string;
+
+    myAction: Function;
+}
+
+@Component({
+    selector: "my-app",
+    template: `
+        <h1>My First AngularJS Annotations Application</h1>
+        <my-directive param1="myApp.param1" param2="myApp.param2" param3="myApp.param3" param4="{{myApp.text}}" action="myApp.launch()"></my-directive>
+    `,
+    directives: [MyDirective]
+})
+export class AppComponent {
+    param1: any;
+    param2: any;
+    param3: any;
+    text: string;
+    
+    launch() {
+        alert("une action");
+    }
+}
 ```
 
 #### Injectable

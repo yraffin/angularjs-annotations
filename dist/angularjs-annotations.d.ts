@@ -209,15 +209,17 @@ declare module "angularjs-annotations/platform/browser.directive.utils" {
 }
 declare module "angularjs-annotations/router/metadata/route.config.metadata" {
     import { Class } from "angularjs-annotations/core/types";
+    export interface IAsyncLoader {
+        path: string;
+        name?: string;
+        deps?: Array<string>;
+    }
     export interface IRouteDefinition {
         path: string;
         name: string;
         component?: Class;
         useAsDefault?: boolean;
-        loader?: {
-            path: string;
-            name?: string;
-        };
+        loader?: IAsyncLoader;
     }
     export class RouteConfigMetadata {
         data: Array<IRouteDefinition>;
@@ -226,15 +228,13 @@ declare module "angularjs-annotations/router/metadata/route.config.metadata" {
 }
 declare module "angularjs-annotations/router/directives/require.loader" {
     import { Class } from "angularjs-annotations/core/types";
+    import { IAsyncLoader } from "angularjs-annotations/router/metadata/route.config.metadata";
     export const REQUIRE_LOADER: string;
     export class RequireLoader {
         private _compile;
         private _q;
         private _ocLazyLoad;
-        loader: {
-            path: string;
-            name: string;
-        };
+        loader: IAsyncLoader;
         link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
         load(): angular.IPromise<Class>;
     }

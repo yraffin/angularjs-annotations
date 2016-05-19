@@ -512,7 +512,7 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
                 if (!metadata) {
                     throw new TypeError("This route object is not a component. Route: " + _this.loader.path);
                 }
-                var newModuleName = browser_1.compile(component).name;
+                var newModuleName = browser_1.compile(component, _this.loader.deps || []).name;
                 _this._ocLazyLoad.inject(newModuleName).then(function (data) {
                     var componentElement = angular.element("<" + metadata.selector + "></" + metadata.selector + ">");
                     _this._compile(componentElement)(scope);

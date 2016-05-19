@@ -3,6 +3,7 @@ import {METADATA_KEY} from "angularjs-annotations/core/decorators.utils"
 import {ComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata"
 import {Directive, Input, Inject,Service} from "angularjs-annotations/core/decorators"
 import {compile} from "angularjs-annotations/platform/browser"
+import {IAsyncLoader} from "angularjs-annotations/router/metadata/route.config.metadata";
 
 export const REQUIRE_LOADER = "requirejs-loader";
 
@@ -18,7 +19,7 @@ export class RequireLoader{
     private _ocLazyLoad: oc.ILazyLoad;
     
     @Input()
-    loader: {path: string; name: string;};
+    loader: IAsyncLoader;
     
     link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes){
         // load the component by its path and potential name.
@@ -29,7 +30,7 @@ export class RequireLoader{
                 throw new TypeError("This route object is not a component. Route: " + this.loader.path );
             }
             
-            let newModuleName = compile(component).name;
+            let newModuleName = compile(component, this.loader.deps || []).name;
             
             this._ocLazyLoad.inject(newModuleName).then(data => {
                 let componentElement = angular.element("<" + metadata.selector + "></" + metadata.selector + ">");
