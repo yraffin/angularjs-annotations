@@ -7,6 +7,7 @@ import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/
 import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {PipeMetadata} from 'angularjs-annotations/core/metadata/pipe.metadata'
+import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
 
 /**
  * Gets the function or inline annotated function if injection.

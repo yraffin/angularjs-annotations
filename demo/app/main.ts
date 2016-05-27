@@ -2,4 +2,4 @@
 
 import {AppComponent} from "app/app.component"
 
-bootstrap(AppComponent);
+bootstrap(AppComponent, ["ngMaterial"]);

@@ -5,18 +5,28 @@
         "reflect-metadata": "vendors/reflect-metadata",
         "angular": "vendors/angular/angular.min",
         "angular-ui-router": "vendors/angular/angular-ui-router.min",
+        "ui-router-extras": "vendors/angular/ui-router-extras",
         "jquery": "vendors/jquery.min",
         "underscore": "vendors/underscore-min",
         "angularjs-annotations": "vendors/angularjs-annotations",
-        "ocLazyLoad": "vendors/ocLazyLoad"
+        "ocLazyLoad": "vendors/ocLazyLoad",
+        "angular-animate": "vendors/angular/angular-animate",
+        "angular-aria": "vendors/angular/angular-aria",
+        "angular-messages": "vendors/angular/angular-messages",
+        "angular-material": "vendors/angular/angular-material"
     },
     shim: {
         "jquery": { "exports": "jquery" },
         "angular": { "exports": "angular", deps: ["jquery"] },
         "angular-ui-router": { deps: ["angular"] },
+        "ui-router-extras": { deps: ["angular-ui-router"] },
         "ocLazyLoad": { deps: ["angular"] },
-        "angularjs-annotations": { deps: ["angular-ui-router", "underscore", "reflect-metadata", "ocLazyLoad"] },
-        "app/main": { deps: ["angularjs-annotations"] },
+        "angularjs-annotations": { deps: ["angular-ui-router", "underscore", "reflect-metadata", "ocLazyLoad", "ui-router-extras"] },
+        "angular-animate": { deps: ["angular"] },
+        "angular-aria": { deps: ["angular"] },
+        "angular-messages": { deps: ["angular"] },
+        "angular-material": {deps:["angular-animate", "angular-aria", "angular-messages"]},
+        "app/main": { deps: ["angularjs-annotations", "angular-material"] },
     }
 } as RequireConfig;
 

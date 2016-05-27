@@ -15,6 +15,7 @@ import {Class} from "angularjs-annotations/core/types"
 import {Provider} from "angularjs-annotations/core/provider"
 import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isInjectable, isFactory, isConfigBlock, isRunBlock} from "angularjs-annotations/platform/browser.utils"
 import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope,PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
+import {LazyLoadRun} from "angularjs-annotations/router/lazyload-runblock";
 
 export interface IModule {
     name: string;
@@ -511,13 +512,31 @@ export class ApplicationModule implements IModule {
                     if (!route.component && route.loader) {
                         $stateProvider.state({
                             url: route.path,
-                            //template: "<" + REQUIRE_LOADER + " path=\"" + route.loader.path + "\" name=\"" + route.loader.name + "\"></" + REQUIRE_LOADER + ">",
-                            template: "<" + REQUIRE_LOADER + " loader=\"loader\"></" + REQUIRE_LOADER + ">",
+                            template: () => route.loader.loadedTemplate,
                             name: route.name,
                             $$routeDefinition: route,
-                            controller: ["$scope", ($scope) => {
-                                $scope.loader = route.loader;
-                            }]
+                            resolve: {
+                                load:["$q", "$ocLazyLoad", ($q: angular.IQService, $ocLazyLoad:oc.ILazyLoad) => {                                    
+                                    var defer = $q.defer();
+                                    require([route.loader.path], (loaded:any) => {
+                                        let component = route.loader.name ? loaded[route.loader.name] : loaded;
+                                        let metadatas = Reflect.getMetadata(METADATA_KEY, component);
+                                        let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
+                                        if (!metadata) {
+                                            throw new TypeError("This route object is not a component. Route: " + route.loader.path );
+                                        }
+                                        
+                                        let newModuleName = compile(component, route.loader.deps || []).name;
+                                        
+                                        $ocLazyLoad.inject(newModuleName).then(data => {
+                                            route.loader.loadedTemplate = "<" + metadata.selector + "></" + metadata.selector + ">";
+                                            defer.resolve(route.loader.loadedTemplate);
+                                        });
+                                    });
+                                    
+                                    return defer.promise;
+                                }]
+                            }
                         } as IRoute);
                         return;
                     }
@@ -601,6 +620,10 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     var name = componentMetadata.getInjectionName(component);
     var appModule = compileComponent(name, component, modules);
 
+    // add lazyloading on state not found.
+    let annotatedRunBlock = getInlineAnnotatedFunction(LazyLoadRun);
+    appModule.run(annotatedRunBlock);
+    
     var element = angular.element(componentMetadata.selector);
     if (element.length === 0) {
         console.log("Application not bootstrapped because selector \"" + componentMetadata.selector + "\" not found.");

@@ -3,7 +3,8 @@
 export interface IAsyncLoader{
     path: string;
     name?: string;
-    deps?: Array<string>
+    deps?: Array<string>;
+    loadedTemplate?: string;
 }
 
 export interface IRouteDefinition {
