@@ -14,7 +14,6 @@ module.exports = {
                 "angular/angular.min.js": "angular/angular.js",
                 "reflect-metadata.js": "reflect-metadata/Reflect.js",
                 "angular/angular-ui-router.min.js": "angular-ui-router/release/angular-ui-router.js",
-                "angular/ui-router-extras.js": "ui-router-extras/release/ct-ui-router-extras.js",
                 "ocLazyLoad.js": "oclazyload/dist/ocLazyLoad.js",
                 "angular/angular-aria.js": "angular-aria/angular-aria.min.js",
                 "angular/angular-animate.js": "angular-animate/angular-animate.min.js",

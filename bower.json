@@ -32,6 +32,6 @@
     "angular-ui-router": "^0.2.18",
     "jquery": "^2.2.3",
     "oclazyload": "^1.0.9",
-    "ui-router-extras": "^0.1.2"
+    "angular-material": "^1.0.9"
   }
 }

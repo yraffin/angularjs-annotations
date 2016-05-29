@@ -505,6 +505,7 @@ export class ApplicationModule implements IModule {
                 let defaultRoute = _.find(this._routes, route => route.useAsDefault);
                 if (defaultRoute) {
                     $urlRouterProvider.otherwise(defaultRoute.path);
+                    // TODO: use lazyLoadingRoute to manage unknown routes
                 }
 
                 _.each(this._routes, route => {

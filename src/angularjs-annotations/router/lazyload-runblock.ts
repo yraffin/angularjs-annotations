@@ -27,7 +27,10 @@ export class LazyLoadRun {
             fromParams: {}
         ) => {
             event.preventDefault();
-            // do your module load
+            // find lazy states
+            let lazyStates = this._state.get().filter((state:any) => state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader);
+            console.log(lazyStates);
+            
             // ... and then transitionTo
             this._state.transitionTo(unfoundState.to, unfoundState.toParams, unfoundState.options);
         });

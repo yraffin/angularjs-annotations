@@ -117,6 +117,10 @@ export function isUrl(text: string): boolean{
     return regexp.test(text);
 }
 
+export function lazyLoadingRoute() {
+    
+}
+
 /**
  * Gets a value indicating whether provider function is angular directive.
  * @method
