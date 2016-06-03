@@ -4,7 +4,7 @@ import { IInjectableProperty, InjectionMetadata } from "angularjs-annotations/co
 import { InjectableMetadata } from "angularjs-annotations/core/metadata/injectable.metadata"
 import {DirectiveMetadata, IDirectiveMetadata} from "angularjs-annotations/core/metadata/directive.metadata";
 import {ComponentMetadata, IComponentMetadata} from "angularjs-annotations/core/metadata/component.metadata";
-import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
+import {ConfigBlockMetadata, RunBlockMetadata, BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {PipeMetadata} from 'angularjs-annotations/core/metadata/pipe.metadata'
 import {RouteConfigMetadata, IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
@@ -52,7 +52,7 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false, i
         for (let index = 0; index < injection.data.length; index++) {
             dataInjections[injection.data[index].propertyName] = args[index];
         }
-        
+
         let obj = construct(provider, providerArguments, dataInjections);
 
         return obj;
@@ -60,19 +60,19 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false, i
 
     // copy prototype so intanceof operator still works
     annotatedFunc.prototype = provider.prototype;
-    
-    if (!isFactory){
+
+    if (!isFactory) {
         result.push(annotatedFunc);
         return result;
     }
-    
+
     // set the factory constructor
-    var factory = function(...args: any[]){
-        if (isPipe){
-            var filter = construct(annotatedFunc, args); 
+    var factory = function (...args: any[]) {
+        if (isPipe) {
+            var filter = construct(annotatedFunc, args);
             return (...filterArgs) => filter.transform.apply(filter, filterArgs);
         }
-        
+
         return construct(annotatedFunc, args);
     }
 
@@ -87,38 +87,56 @@ export function getInlineAnnotatedFunction(provider: Class, isFactory = false, i
  * @param {any[]} arguments - The contructor arguments.
  * @param {Object} dataInjections - The injected data to initialize on the class.
  */
-export function construct(constructor:Function, args: Array<any>, dataInjections?: _.Dictionary<any>) {
+export function construct(constructor: Function, args: Array<any>, dataInjections?: _.Dictionary<any>) {
     var component: any = function () {
-        if (dataInjections){
+        if (dataInjections) {
             _.each(dataInjections, (value, key) => {
                 this[key] = value;
             });
         }
-        
+
         return constructor.apply(this, args);
     }
     component.prototype = constructor.prototype;
     return new component();
 }
-   
+
+export function buildOtherwise(routes: IRouteDefinition[]): ($injector: angular.auto.IInjectorService, $location: angular.ILocationService) => any {
+    return ($injector: angular.auto.IInjectorService, $location: angular.ILocationService) => {
+        let stateService = $injector.get<angular.ui.IStateService>("$state");
+        let urlMatcherFactory = $injector.get<angular.ui.IUrlMatcherFactory>("$urlMatcherFactory");
+        let lazyStates = stateService.get().filter((state: any) => state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader);
+        let urlParts = $location.path().split("/");
+        urlParts.pop();
+        while (urlParts.length > 0) {
+            let url = urlParts.join("/");
+            let state = _.find(lazyStates, state => {
+                let matcher: any = _.isString(state.url) ? urlMatcherFactory.compile(state.url as string) : state.url;
+                return matcher.regexp.test(url)
+            })
+
+            if (state && state.resolve){
+                $injector.invoke(state.resolve["load"]);
+            }
+            urlParts.pop();
+        }
+    }
+}
+
 /**
  * Gets a value indicating whether text is a valid url.
  * @method
  * @param {string} text - Text to check.
  * @return {boolean}
  */
-export function isUrl(text: string): boolean{
-    var regexp = new RegExp('^(https?:\/\/)?'+ // protocol
-                '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|'+ // domain name
-                '((\d{1,3}\.){3}\d{1,3}))'+ // OR ip (v4) address
-                '(\:\d+)?(\/[-a-z\d%_.~+]*)*'+ // port and path
-                '(\?[;&a-z\d%_.~+=-]*)?'+ // query string
-                '(\#[-a-z\d_]*)?$','i'); // fragment locater
+export function isUrl(text: string): boolean {
+    var regexp = new RegExp('^(https?:\/\/)?' + // protocol
+        '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|' + // domain name
+        '((\d{1,3}\.){3}\d{1,3}))' + // OR ip (v4) address
+        '(\:\d+)?(\/[-a-z\d%_.~+]*)*' + // port and path
+        '(\?[;&a-z\d%_.~+=-]*)?' + // query string
+        '(\#[-a-z\d_]*)?$', 'i'); // fragment locater
     return regexp.test(text);
-}
-
-export function lazyLoadingRoute() {
-    
 }
 
 /**

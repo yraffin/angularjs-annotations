@@ -8,6 +8,9 @@ export class LazyLoadRun {
     @Inject("$q")
     private _q: angular.IQService;
     
+    @Inject("$urlRouter")
+    private _urlRouter: angular.ui.IUrlRouterService;
+    
     @Inject("$state")
     private _state: angular.ui.IStateService;
 
@@ -16,23 +19,18 @@ export class LazyLoadRun {
     }
 
     initialize() {
-        this.manageStateNotFound();
+        this.manageLocationNotFound();
     }
 
-    manageStateNotFound() {
-        this._rootScope.$on("$stateNotFound", (
-            event: angular.IAngularEvent,
-            unfoundState: angular.ui.IUnfoundState,
-            fromState: angular.ui.IState,
-            fromParams: {}
-        ) => {
-            event.preventDefault();
-            // find lazy states
-            let lazyStates = this._state.get().filter((state:any) => state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader);
-            console.log(lazyStates);
+    manageLocationNotFound() {
+        this._rootScope.$on("$locationChangeStart", (event: angular.IAngularEvent) => {
+            // event.preventDefault();
+            // // find lazy states
+            // let lazyStates = this._state.get().filter((state:any) => state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader);
+            // console.log(lazyStates);
             
-            // ... and then transitionTo
-            this._state.transitionTo(unfoundState.to, unfoundState.toParams, unfoundState.options);
+            // // ... and then resync with router
+            // this._urlRouter.sync();
         });
     }
 }

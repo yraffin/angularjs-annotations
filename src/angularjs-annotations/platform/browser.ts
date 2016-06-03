@@ -10,11 +10,11 @@ import {RequireLoader, REQUIRE_LOADER} from "angularjs-annotations/router/direct
 import {IRoute} from "angularjs-annotations/router/providers/router";
 import {ServiceMetadata, FactoryMetadata, ValueMetadata, ConstantMetadata} from "angularjs-annotations/core/metadata/providers.metadata";
 import {IPipeMetadata, PipeMetadata, PipeTransform} from "angularjs-annotations/core/metadata/pipe.metadata";
-import {ConfigBlockMetadata, RunBlockMetadata,BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
+import {ConfigBlockMetadata, RunBlockMetadata, BlockMetadata, BlockType} from "angularjs-annotations/core/metadata/blocks.metadata"
 import {Class} from "angularjs-annotations/core/types"
 import {Provider} from "angularjs-annotations/core/provider"
-import {getInlineAnnotatedFunction, isComponent, isDirective, isService, isInjectable, isFactory, isConfigBlock, isRunBlock} from "angularjs-annotations/platform/browser.utils"
-import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope,PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
+import {getInlineAnnotatedFunction, buildOtherwise, isComponent, isDirective, isService, isInjectable, isFactory, isConfigBlock, isRunBlock} from "angularjs-annotations/platform/browser.utils"
+import {getDirectiveLinkFunction, getDirectiveRestriction, getDirectiveScope, PROPERTIES_SYMBOLS} from "angularjs-annotations/platform/browser.directive.utils"
 import {LazyLoadRun} from "angularjs-annotations/router/lazyload-runblock";
 
 export interface IModule {
@@ -76,23 +76,23 @@ export class ApplicationModule implements IModule {
      * @method
      * @param {Type[]} providers
      */
-    add(...providers: Array<Class|Provider>): IModule {
-        _.each(providers, (provider: Class|Provider) => {
+    add(...providers: Array<Class | Provider>): IModule {
+        _.each(providers, (provider: Class | Provider) => {
             // if provider => build provider
-            if (provider instanceof Provider){
+            if (provider instanceof Provider) {
                 this.buildProvider(provider as Provider);
                 return this;
             }
-            
+
             // register module config/run blocks
             this.registerBlocks(provider as Class);
-            
+
             // register module value service
             this.registerValuesClass(provider as Class);
-            
+
             // register module value service
             this.registerConstantsClass(provider as Class);
-            
+
             // if provider is directive (or component)
             if (isDirective(provider as Class)) {
                 this.registerDirective(provider as Class);
@@ -144,54 +144,54 @@ export class ApplicationModule implements IModule {
         this._module.run(initialization as any);
         return this;
     }
-    
+
     registerDependency(componentModule: IModule) {
         this._module.requires = this._module.requires || [];
-        this._module.requires.push(componentModule.name); 
+        this._module.requires.push(componentModule.name);
     }
 
     //#endregion
 
     //#region ----- Module registration Methods ----
-    
+
     /**
      * Build a provider into the angular module.
      * @method
      * @param provider {Provider} The provider to build.
      */
-    private buildProvider(provider: Provider){
+    private buildProvider(provider: Provider) {
         // register service
-        if (provider.injectable.useClass){
+        if (provider.injectable.useClass) {
             let metadatas = Reflect.getMetadata(METADATA_KEY, provider.injectable.useClass);
             let injectableMetadata = _.find(metadatas, (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
-            if (!injectableMetadata){
+            if (!injectableMetadata) {
                 throw new TypeError("Service should be Injectable");
             }
-            
+
             this.registerService(provider.injectorKey, provider.injectable.useClass);
             return;
         }
-        
+
         // register factory
-        if (provider.injectable.useFactory){
+        if (provider.injectable.useFactory) {
             let metadatas = Reflect.getMetadata(METADATA_KEY, provider.injectable.useFactory);
             let injectableMetadata = _.find(metadatas, (metadata) => metadata instanceof InjectableMetadata) as InjectableMetadata;
-            if (!injectableMetadata){
+            if (!injectableMetadata) {
                 throw new TypeError("Factory function not yet implemented. Factory should be Injectable.");
             }
-            
+
             this.registerFactory(provider.injectorKey, provider.injectable.useFactory as Class);
             return;
         }
-        
+
         // register value
-        if (provider.injectable.useValue){
+        if (provider.injectable.useValue) {
             this.registerValue(provider.injectorKey, provider.injectable.useValue);
             return;
         }
-        
+
         // register constant
-        if (provider.injectable.useConstant){
+        if (provider.injectable.useConstant) {
             this.registerConstant(provider.injectorKey, provider.injectable.useConstant);
             return;
         }
@@ -244,66 +244,66 @@ export class ApplicationModule implements IModule {
 
         this._routes = _.union(this._routes, routeMetadata.data);
     }
-    
+
     /**
      * Register an angular config/run block for a module.
      * @method
      * @param {Class} provider - The provider class.
      */
-    private registerBlocks(provider: Class){
+    private registerBlocks(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var blocks = _.filter(metadatas, (metadata) => metadata instanceof BlockMetadata) as BlockMetadata[];
         _.each(blocks, block => {
             let annotatedFunc = getInlineAnnotatedFunction(block.block);
-            if (block.blockType === BlockType.CONFIG){
+            if (block.blockType === BlockType.CONFIG) {
                 this.config(annotatedFunc as any);
-            } else if (block.blockType === BlockType.RUN){
+            } else if (block.blockType === BlockType.RUN) {
                 this.run(annotatedFunc as any);
             } else {
                 throw new TypeError("This block is not a config or run block");
             }
         })
     }
-    
+
     /**
      * Register an angular value service for a module.
      * @method
      * @param {Class} provider - The provider class.
      */
-    private registerValuesClass(provider: Class){
+    private registerValuesClass(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var values = _.filter(metadatas, (metadata) => metadata instanceof ValueMetadata) as ValueMetadata[];
         _.each(values, value => this.registerValue(value.name, value.value));
     }
-    
+
     /**
      * Register an angular value service for a module.
      * @method
      * @param {string} name - The value injectable name.
      * @param {any} value - The injectable value.
      */
-    private registerValue(name: string, value: any){
+    private registerValue(name: string, value: any) {
         this._module.value(name, value);
     }
-    
+
     /**
      * Register an angular constant service for a module.
      * @method
      * @param {Class} provider - The provider class.
      */
-    private registerConstantsClass(provider: Class){
+    private registerConstantsClass(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var constants = _.filter(metadatas, (metadata) => metadata instanceof ConstantMetadata) as ConstantMetadata[];
         _.each(constants, constant => this.registerConstant(constant.name, constant.value));
     }
-    
+
     /**
      * Register an angular constant service for a module.
      * @method
      * @param {string} name - The constant injectable name.
      * @param {any} value - The constant value.
      */
-    private registerConstant(name: string, value: any){
+    private registerConstant(name: string, value: any) {
         this._module.constant(name, value);
     }
 
@@ -332,18 +332,18 @@ export class ApplicationModule implements IModule {
         if (directiveMetadata instanceof ComponentMetadata) {
             this.registerRoutes(provider);
         }
-        
+
         // if input defined => add to properties
         var inputMetadata = _.find(metadatas, (metadata) => metadata instanceof InputMetadata) as InputMetadata;
-        if (inputMetadata && inputMetadata.data.length > 0){
+        if (inputMetadata && inputMetadata.data.length > 0) {
             directiveMetadata.properties = _.union(directiveMetadata.properties || [], _.map(inputMetadata.data, inputData => {
-                if (inputData.inputName && PROPERTIES_SYMBOLS.indexOf(inputData.inputName.charAt(0)) === -1 ){
+                if (inputData.inputName && PROPERTIES_SYMBOLS.indexOf(inputData.inputName.charAt(0)) === -1) {
                     // default input => = symbol
                     return inputData.propertyName + ": =" + (inputData.inputName || "");
-                } else if (inputData.inputName){
-                    return inputData.propertyName + ": " + (inputData.inputName || "");                    
+                } else if (inputData.inputName) {
+                    return inputData.propertyName + ": " + (inputData.inputName || "");
                 }
-                
+
                 return inputData.propertyName;
             }));
         }
@@ -354,10 +354,10 @@ export class ApplicationModule implements IModule {
 
         // add scope
         directive.scope = getDirectiveScope(directiveMetadata);
-        if (_.isObject(directive.scope)){
+        if (_.isObject(directive.scope)) {
             directive.bindToController = true;
         }
-        
+
         // add template
         if (directiveMetadata.template) {
             directive.template = directiveMetadata.template;
@@ -366,10 +366,10 @@ export class ApplicationModule implements IModule {
         }
 
         directive.replace = directiveMetadata.replace || false;
-        
+
         // set link function
         directive.link = getDirectiveLinkFunction(provider, directiveMetadata);
-        
+
         // set compile function        
         if (provider["compile"]) {
             directive.compile = provider["compile"];
@@ -381,7 +381,7 @@ export class ApplicationModule implements IModule {
         // set module directive
         this._module.directive(name, () => directive);
         this.setAsRegistered(name);
-        
+
         // register pipes
         _.each(directiveMetadata.pipes || [], pipe => this.registerPipe(pipe));
 
@@ -393,13 +393,13 @@ export class ApplicationModule implements IModule {
 
         _.each(linkedClasses, linkedClass => this.add(linkedClass));
     }
-    
+
     /**
      * Register an angular filter.
      * @method
      * @param {Class} provider - The provider to register in angular module.
      */
-    private registerPipe(provider:Class){
+    private registerPipe(provider: Class) {
         var metadatas = Reflect.getMetadata(METADATA_KEY, provider);
         var pipeMetadata = _.find(metadatas, (metadata) => metadata instanceof PipeMetadata) as PipeMetadata;
         if (!pipeMetadata) {
@@ -411,7 +411,7 @@ export class ApplicationModule implements IModule {
             // TODO: check if registration is same type or else throw error
             return;
         }
-        
+
         // add inline annotated function to directive provider
         var annotatedFunction = getInlineAnnotatedFunction(provider, true, true) as Array<any>;
 
@@ -501,12 +501,11 @@ export class ApplicationModule implements IModule {
     private configureRouting() {
         this._module.config(["$stateProvider", "$urlRouterProvider",
             ($stateProvider: angular.ui.IStateProvider, $urlRouterProvider: angular.ui.IUrlRouterProvider) => {
-                // if one default state
-                let defaultRoute = _.find(this._routes, route => route.useAsDefault);
-                if (defaultRoute) {
-                    $urlRouterProvider.otherwise(defaultRoute.path);
-                    // TODO: use lazyLoadingRoute to manage unknown routes
-                }
+                // Prevent $urlRouter from automatically intercepting URL changes;
+                // this allows you to configure custom behavior in between
+                // location changes and route synchronization:
+
+                $urlRouterProvider.otherwise(buildOtherwise(this._routes));
 
                 _.each(this._routes, route => {
                     // if lazy loading component
@@ -517,38 +516,39 @@ export class ApplicationModule implements IModule {
                             name: route.name,
                             $$routeDefinition: route,
                             resolve: {
-                                load:["$q", "$ocLazyLoad", ($q: angular.IQService, $ocLazyLoad:oc.ILazyLoad) => {                                    
+                                load: ["$q", "$ocLazyLoad", ($q: angular.IQService, $ocLazyLoad: oc.ILazyLoad) => {
                                     var defer = $q.defer();
-                                    require([route.loader.path], (loaded:any) => {
+                                    require([route.loader.path], (loaded: any) => {
                                         let component = route.loader.name ? loaded[route.loader.name] : loaded;
                                         let metadatas = Reflect.getMetadata(METADATA_KEY, component);
                                         let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
                                         if (!metadata) {
-                                            throw new TypeError("This route object is not a component. Route: " + route.loader.path );
+                                            throw new TypeError("This route object is not a component. Route: " + route.loader.path);
                                         }
-                                        
+
                                         let newModuleName = compile(component, route.loader.deps || []).name;
-                                        
+
                                         $ocLazyLoad.inject(newModuleName).then(data => {
                                             route.loader.loadedTemplate = "<" + metadata.selector + "></" + metadata.selector + ">";
                                             defer.resolve(route.loader.loadedTemplate);
                                         });
                                     });
-                                    
+
                                     return defer.promise;
                                 }]
                             }
                         } as IRoute);
+                        
                         return;
                     }
-                    
+
                     // get component metadata
                     let metadatas = Reflect.getMetadata(METADATA_KEY, route.component);
                     let metadata = _.find(metadatas, (metadata) => metadata instanceof ComponentMetadata) as ComponentMetadata;
                     if (!metadata) {
-                        throw new TypeError("This route object is not a component. Route: " + route.name );
+                        throw new TypeError("This route object is not a component. Route: " + route.name);
                     }
-                    
+
                     $stateProvider.state({
                         url: route.path,
                         template: "<" + metadata.selector + "></" + metadata.selector + ">",
@@ -587,9 +587,9 @@ export function compile(component: Class, modules?: Array<string | IModule>): IM
     }
 
     var name = componentMetadata.getInjectionName(component);
-    var appModule =  compileComponent(name, component, modules);
-    
-    if (__BootstrapApplication__){
+    var appModule = compileComponent(name, component, modules);
+
+    if (__BootstrapApplication__) {
         __BootstrapApplication__.registerDependency(appModule);
     }
     return appModule;
@@ -617,14 +617,32 @@ export function bootstrap(component: Class, modules?: Array<string | IModule>) {
     if (!componentMetadata) {
         throw new TypeError("Only module component can be bootstrapped");
     }
-    
+
     var name = componentMetadata.getInjectionName(component);
     var appModule = compileComponent(name, component, modules);
 
     // add lazyloading on state not found.
     let annotatedRunBlock = getInlineAnnotatedFunction(LazyLoadRun);
     appModule.run(annotatedRunBlock);
-    
+
+    // lazyloading url
+    appModule.config(["$urlRouterProvider",
+        ($urlRouterProvider: angular.ui.IUrlRouterProvider) => {
+            // default otherwise function
+            let otherwiseFunc = ['$log', '$location', function otherwiseFunc($log, $location) { }];
+            $urlRouterProvider.otherwise = function (rule) {
+                if (_.isString(rule)) {
+                    var redirect = rule;
+                    rule = function () { return redirect; };
+                }
+                else if (!_.isFunction(rule)) {
+                    throw new Error("Url router provider otherwise 'rule' is not a function");
+                }
+                otherwiseFunc = ['$injector', '$location', rule];
+                return $urlRouterProvider;
+            };
+        }]);
+
     var element = angular.element(componentMetadata.selector);
     if (element.length === 0) {
         console.log("Application not bootstrapped because selector \"" + componentMetadata.selector + "\" not found.");
