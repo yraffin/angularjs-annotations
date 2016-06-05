@@ -1,7 +1,7 @@
 ﻿import { Component, Directive, Inject, Config, provide } from "angularjs-annotations/core";
 import { Router, RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from "angularjs-annotations/router";
-import { HeroesComponent } from "app/heroes.component";
-import { DashboardComponent } from "app/dashboard.component";
+import { HeroesComponent } from "app/module/heroes.component";
+import { DashboardComponent } from "app/module/dashboard.component";
 import {HttpInterceptor, HTTP_INTERCEPTOR} from "app/http.interceptor"
 import {SecurityService} from "app/security.service"
 
@@ -11,7 +11,7 @@ import {SecurityService} from "app/security.service"
         <h2>{{myModule.title}}</h2>
         <nav>
             <a ui-sref="Module.Dashboard">Dashboard</a>
-            <a ui-sref="Module.HeroDetail">Heroes</a>
+            <a ui-sref="Module.Heroes">Heroes</a>
             <a ng-if="!myApp.securityService.isAuthorized" ng-click="myApp.securityService.login()">Login</a>
             <a ng-if="myApp.securityService.isAuthorized" ng-click="myApp.securityService.logout()">Logout</a>
         </nav>
@@ -33,9 +33,14 @@ import {SecurityService} from "app/security.service"
         useAsDefault: true
     },
     {
+        name: "Module.Heroes",
+        path: "/heroes",
+        component: HeroesComponent
+    },
+    {
         name: "Module.HeroDetail",
         path: "/detail/{id:int}",
-        loader: {path: "app/hero-detail.component", name: "HeroDetailComponent"}
+        loader: {path: "app/module/hero-detail.component", name: "HeroDetailComponent"}
     }
 ])
 export class ModuleComponent {

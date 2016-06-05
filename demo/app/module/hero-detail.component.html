@@ -1,0 +1,13 @@
+<div ng-if="moduleHeroDetail.hero">
+    <h2>{{moduleHeroDetail.hero.name}} details</h2>
+    <div>
+    <label>id: </label>{{moduleHeroDetail.hero.id}}
+    </div>
+  <div> 
+    <md-input-container>
+      <label>name: </label>
+      <input ng-model="moduleHeroDetail.hero.name" placeholder="name" />
+     <md-input-container>
+  </div>
+  <md-button class="md-raised md-primary" ng-click="moduleHeroDetail.goBack()">Back</md-button>
+</div>

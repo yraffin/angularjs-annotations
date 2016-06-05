@@ -505,7 +505,7 @@ export class ApplicationModule implements IModule {
                 // this allows you to configure custom behavior in between
                 // location changes and route synchronization:
 
-                $urlRouterProvider.otherwise(buildOtherwise(this._routes));
+                //$urlRouterProvider.otherwise(buildOtherwise(this._routes));
 
                 _.each(this._routes, route => {
                     // if lazy loading component

@@ -1,0 +1,12 @@
+﻿<div>
+    <h2>My Heroes</h2>
+    <ul class="heroes">
+        <li ng-repeat="hero in moduleHeroes.heroes" ng-click="moduleHeroes.onSelect(hero)" ng-class="{selected: hero == moduleHeroes.selectedHero}">
+            <span class="badge">{{hero.id}}</span> {{hero.name}}
+        </li>
+    </ul>
+    <div ng-if="moduleHeroes.selectedHero">
+        <h2>{{moduleHeroes.selectedHero.name | uppercase}} is my hero</h2>
+        <button ng-click="moduleHeroes.gotoDetail()">View Details</button>
+    </div>
+</div>
