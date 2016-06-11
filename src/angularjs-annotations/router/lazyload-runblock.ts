@@ -23,11 +23,11 @@ export class LazyLoadRun {
     }
 
     manageLocationNotFound() {
-        this._rootScope.$on("$locationChangeStart", (event: angular.IAngularEvent) => {
+        this._rootScope.$on("$locationChangeStart", (event: angular.IAngularEvent, next) => {
             // event.preventDefault();
             // // find lazy states
             // let lazyStates = this._state.get().filter((state:any) => state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader);
-            // console.log(lazyStates);
+            console.log(next);
             
             // // ... and then resync with router
             // this._urlRouter.sync();

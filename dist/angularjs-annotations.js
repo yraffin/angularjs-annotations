@@ -506,15 +506,22 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
         }
         RequireLoader.prototype.link = function (scope, element, attributes) {
             var _this = this;
+            if (!this.route || !this.route.loader) {
+                return;
+            }
+            if (this.route.loader.loadedTemplate) {
+                return;
+            }
             this.load().then(function (component) {
                 var metadatas = Reflect.getMetadata(decorators_utils_3.METADATA_KEY, component);
                 var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_2.ComponentMetadata; });
                 if (!metadata) {
-                    throw new TypeError("This route object is not a component. Route: " + _this.loader.path);
+                    throw new TypeError("This route object is not a component. Route: " + _this.route.loader.path);
                 }
-                var newModuleName = browser_1.compile(component, _this.loader.deps || []).name;
+                var newModuleName = browser_1.compile(component, _this.route.loader.deps || []).name;
                 _this._ocLazyLoad.inject(newModuleName).then(function (data) {
-                    var componentElement = angular.element("<" + metadata.selector + "></" + metadata.selector + ">");
+                    _this.route.loader.loadedTemplate = "<" + metadata.selector + "></" + metadata.selector + ">";
+                    var componentElement = angular.element(_this.route.loader.loadedTemplate);
                     _this._compile(componentElement)(scope);
                     element.replaceWith(componentElement);
                 });
@@ -523,8 +530,8 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
         RequireLoader.prototype.load = function () {
             var _this = this;
             var defer = this._q.defer();
-            require([this.loader.path], function (component) {
-                defer.resolve(_this.loader.name ? component[_this.loader.name] : component);
+            require([this.route.loader.path], function (component) {
+                defer.resolve(_this.route.loader.name ? component[_this.route.loader.name] : component);
             });
             return defer.promise;
         };
@@ -543,7 +550,7 @@ define("angularjs-annotations/router/directives/require.loader", ["require", "ex
         __decorate([
             decorators_2.Input(), 
             __metadata('design:type', Object)
-        ], RequireLoader.prototype, "loader", void 0);
+        ], RequireLoader.prototype, "route", void 0);
         RequireLoader = __decorate([
             decorators_2.Directive({
                 selector: exports.REQUIRE_LOADER
@@ -671,6 +678,30 @@ define("angularjs-annotations/platform/browser.utils", ["require", "exports", "a
         return new component();
     }
     exports.construct = construct;
+    function buildOtherwise(routes) {
+        return function ($injector, $location) {
+            var stateService = $injector.get("$state");
+            var urlMatcherFactory = $injector.get("$urlMatcherFactory");
+            var lazyStates = stateService.get().filter(function (state) { return state.$$routeDefinition && !state.$$routeDefinition.component && state.$$routeDefinition.loader; });
+            var urlParts = $location.path().split("/");
+            urlParts.pop();
+            var _loop_1 = function() {
+                var url = urlParts.join("/");
+                var state = _.find(lazyStates, function (state) {
+                    var matcher = _.isString(state.url) ? urlMatcherFactory.compile(state.url) : state.url;
+                    return matcher.regexp.test(url);
+                });
+                if (state && state.resolve) {
+                    $injector.invoke(state.resolve["load"]);
+                }
+                urlParts.pop();
+            };
+            while (urlParts.length > 0) {
+                _loop_1();
+            }
+        };
+    }
+    exports.buildOtherwise = buildOtherwise;
     function isUrl(text) {
         var regexp = new RegExp('^(https?:\/\/)?' +
             '((([a-z\d]([a-z\d-]*[a-z\d])*)\.)+[a-z]{2,}|' +
@@ -722,7 +753,40 @@ define("angularjs-annotations/platform/browser.utils", ["require", "exports", "a
     }
     exports.isRunBlock = isRunBlock;
 });
-define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/metadata/pipe.metadata", "angularjs-annotations/core/metadata/blocks.metadata", "angularjs-annotations/core/provider", "angularjs-annotations/platform/browser.utils", "angularjs-annotations/platform/browser.directive.utils"], function (require, exports, decorators_utils_5, injectable_metadata_7, directive_metadata_4, component_metadata_4, input_metadata_2, route_config_metadata_1, require_loader_1, providers_metadata_3, pipe_metadata_3, blocks_metadata_3, provider_3, browser_utils_1, browser_directive_utils_1) {
+define("angularjs-annotations/router/lazyload-runblock", ["require", "exports", "angularjs-annotations/core"], function (require, exports, core_1) {
+    "use strict";
+    var LazyLoadRun = (function () {
+        function LazyLoadRun() {
+            this.initialize();
+        }
+        LazyLoadRun.prototype.initialize = function () {
+            this.manageLocationNotFound();
+        };
+        LazyLoadRun.prototype.manageLocationNotFound = function () {
+            this._rootScope.$on("$locationChangeStart", function (event) {
+            });
+        };
+        __decorate([
+            core_1.Inject("$rootScope"), 
+            __metadata('design:type', Object)
+        ], LazyLoadRun.prototype, "_rootScope", void 0);
+        __decorate([
+            core_1.Inject("$q"), 
+            __metadata('design:type', Function)
+        ], LazyLoadRun.prototype, "_q", void 0);
+        __decorate([
+            core_1.Inject("$urlRouter"), 
+            __metadata('design:type', Object)
+        ], LazyLoadRun.prototype, "_urlRouter", void 0);
+        __decorate([
+            core_1.Inject("$state"), 
+            __metadata('design:type', Object)
+        ], LazyLoadRun.prototype, "_state", void 0);
+        return LazyLoadRun;
+    }());
+    exports.LazyLoadRun = LazyLoadRun;
+});
+define("angularjs-annotations/platform/browser", ["require", "exports", "angularjs-annotations/core/decorators.utils", "angularjs-annotations/core/metadata/injectable.metadata", "angularjs-annotations/core/metadata/directive.metadata", "angularjs-annotations/core/metadata/component.metadata", "angularjs-annotations/core/metadata/input.metadata", "angularjs-annotations/router/metadata/route.config.metadata", "angularjs-annotations/core/metadata/providers.metadata", "angularjs-annotations/core/metadata/pipe.metadata", "angularjs-annotations/core/metadata/blocks.metadata", "angularjs-annotations/core/provider", "angularjs-annotations/platform/browser.utils", "angularjs-annotations/platform/browser.directive.utils", "angularjs-annotations/router/lazyload-runblock"], function (require, exports, decorators_utils_5, injectable_metadata_7, directive_metadata_4, component_metadata_4, input_metadata_2, route_config_metadata_1, providers_metadata_3, pipe_metadata_3, blocks_metadata_3, provider_3, browser_utils_1, browser_directive_utils_1, lazyload_runblock_1) {
     "use strict";
     var __Modules = {};
     var __BootstrapApplication__;
@@ -997,20 +1061,32 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
             var _this = this;
             this._module.config(["$stateProvider", "$urlRouterProvider",
                 function ($stateProvider, $urlRouterProvider) {
-                    var defaultRoute = _.find(_this._routes, function (route) { return route.useAsDefault; });
-                    if (defaultRoute) {
-                        $urlRouterProvider.otherwise(defaultRoute.path);
-                    }
                     _.each(_this._routes, function (route) {
                         if (!route.component && route.loader) {
                             $stateProvider.state({
                                 url: route.path,
-                                template: "<" + require_loader_1.REQUIRE_LOADER + " loader=\"loader\"></" + require_loader_1.REQUIRE_LOADER + ">",
+                                template: function () { return route.loader.loadedTemplate; },
                                 name: route.name,
                                 $$routeDefinition: route,
-                                controller: ["$scope", function ($scope) {
-                                        $scope.loader = route.loader;
-                                    }]
+                                resolve: {
+                                    load: ["$q", "$ocLazyLoad", function ($q, $ocLazyLoad) {
+                                            var defer = $q.defer();
+                                            require([route.loader.path], function (loaded) {
+                                                var component = route.loader.name ? loaded[route.loader.name] : loaded;
+                                                var metadatas = Reflect.getMetadata(decorators_utils_5.METADATA_KEY, component);
+                                                var metadata = _.find(metadatas, function (metadata) { return metadata instanceof component_metadata_4.ComponentMetadata; });
+                                                if (!metadata) {
+                                                    throw new TypeError("This route object is not a component. Route: " + route.loader.path);
+                                                }
+                                                var newModuleName = compile(component, route.loader.deps || []).name;
+                                                $ocLazyLoad.inject(newModuleName).then(function (data) {
+                                                    route.loader.loadedTemplate = "<" + metadata.selector + "></" + metadata.selector + ">";
+                                                    defer.resolve(route.loader.loadedTemplate);
+                                                });
+                                            });
+                                            return defer.promise;
+                                        }]
+                                }
                             });
                             return;
                         }
@@ -1059,6 +1135,23 @@ define("angularjs-annotations/platform/browser", ["require", "exports", "angular
         }
         var name = componentMetadata.getInjectionName(component);
         var appModule = compileComponent(name, component, modules);
+        var annotatedRunBlock = browser_utils_1.getInlineAnnotatedFunction(lazyload_runblock_1.LazyLoadRun);
+        appModule.run(annotatedRunBlock);
+        appModule.config(["$urlRouterProvider",
+            function ($urlRouterProvider) {
+                var otherwiseFunc = ['$log', '$location', function otherwiseFunc($log, $location) { }];
+                $urlRouterProvider.otherwise = function (rule) {
+                    if (_.isString(rule)) {
+                        var redirect = rule;
+                        rule = function () { return redirect; };
+                    }
+                    else if (!_.isFunction(rule)) {
+                        throw new Error("Url router provider otherwise 'rule' is not a function");
+                    }
+                    otherwiseFunc = ['$injector', '$location', rule];
+                    return $urlRouterProvider;
+                };
+            }]);
         var element = angular.element(componentMetadata.selector);
         if (element.length === 0) {
             console.log("Application not bootstrapped because selector \"" + componentMetadata.selector + "\" not found.");
@@ -1115,13 +1208,13 @@ define("angularjs-annotations/router/directives/router.outlet", ["require", "exp
     }());
     exports.RouterOutlet = RouterOutlet;
 });
-define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/router/directives/router.link", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_6, router_outlet_1, require_loader_2, router_link_1, router_1) {
+define("angularjs-annotations/router", ["require", "exports", "angularjs-annotations/router/decorators", "angularjs-annotations/router/directives/router.outlet", "angularjs-annotations/router/directives/require.loader", "angularjs-annotations/router/directives/router.link", "angularjs-annotations/router/providers/router"], function (require, exports, decorators_6, router_outlet_1, require_loader_1, router_link_1, router_1) {
     "use strict";
     function __export(m) {
         for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
     }
     __export(decorators_6);
     exports.Router = router_1.Router;
-    exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet, require_loader_2.RequireLoader, router_link_1.RouterLink];
+    exports.ROUTER_DIRECTIVES = [router_outlet_1.RouterOutlet, require_loader_1.RequireLoader, router_link_1.RouterLink];
     exports.ROUTER_PROVIDERS = [router_1.Router];
 });

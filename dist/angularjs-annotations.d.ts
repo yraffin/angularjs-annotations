@@ -213,6 +213,7 @@ declare module "angularjs-annotations/router/metadata/route.config.metadata" {
         path: string;
         name?: string;
         deps?: Array<string>;
+        loadedTemplate?: string;
     }
     export interface IRouteDefinition {
         path: string;
@@ -228,13 +229,13 @@ declare module "angularjs-annotations/router/metadata/route.config.metadata" {
 }
 declare module "angularjs-annotations/router/directives/require.loader" {
     import { Class } from "angularjs-annotations/core/types";
-    import { IAsyncLoader } from "angularjs-annotations/router/metadata/route.config.metadata";
+    import { IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
     export const REQUIRE_LOADER: string;
     export class RequireLoader {
         private _compile;
         private _q;
         private _ocLazyLoad;
-        loader: IAsyncLoader;
+        route: IRouteDefinition;
         link(scope: angular.IScope, element: angular.IAugmentedJQuery, attributes: angular.IAttributes): void;
         load(): angular.IPromise<Class>;
     }
@@ -255,8 +256,10 @@ declare module "angularjs-annotations/router/providers/router" {
 }
 declare module "angularjs-annotations/platform/browser.utils" {
     import { Class } from "angularjs-annotations/core/types";
+    import { IRouteDefinition } from "angularjs-annotations/router/metadata/route.config.metadata";
     export function getInlineAnnotatedFunction(provider: Class, isFactory?: boolean, isPipe?: boolean): Function | Array<any>;
     export function construct(constructor: Function, args: Array<any>, dataInjections?: _.Dictionary<any>): any;
+    export function buildOtherwise(routes: IRouteDefinition[]): ($injector: angular.auto.IInjectorService, $location: angular.ILocationService) => any;
     export function isUrl(text: string): boolean;
     export function isDirective(provider: Class): boolean;
     export function isComponent(provider: Class): boolean;
@@ -266,6 +269,17 @@ declare module "angularjs-annotations/platform/browser.utils" {
     export function isPipe(provider: Class): boolean;
     export function isConfigBlock(provider: Class): boolean;
     export function isRunBlock(provider: Class): boolean;
+}
+declare module "angularjs-annotations/router/lazyload-runblock" {
+    export class LazyLoadRun {
+        private _rootScope;
+        private _q;
+        private _urlRouter;
+        private _state;
+        constructor();
+        initialize(): void;
+        manageLocationNotFound(): void;
+    }
 }
 declare module "angularjs-annotations/platform/browser" {
     import { Class } from "angularjs-annotations/core/types";
